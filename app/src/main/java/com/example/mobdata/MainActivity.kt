@@ -242,7 +242,7 @@ fun PantallaPrincipal(aliasUsuario: String, onCerrarSesion: () -> Unit) {
                     ) {
                         Column {
                             Text(
-                                text = "Perfil Ficticio Activo:",
+                                text = "Hola! ",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -254,7 +254,7 @@ fun PantallaPrincipal(aliasUsuario: String, onCerrarSesion: () -> Unit) {
                             )
                         }
                         TextButton(onClick = onCerrarSesion) {
-                            Text("Salir / Cambiar")
+                            Text("Salir")
                         }
                     }
                 }
