@@ -4,19 +4,117 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
+// ==========================================
+// 1. MODELO DE DATOS Y ESTADO (Estado Local)
+// ==========================================
+data class RegistroAnimo(
+    val id: Long = System.currentTimeMillis(),
+    val emocion: String,
+    val intensidad: Int,
+    val nota: String,
+    val fechaHora: String
+)
+
+data class EstadoFormularioAnimo(
+    val emocionSeleccionada: String = "",
+    val intensidad: Int = 0,
+    val notaTexto: String = "",
+    val mensajeError: String? = null,
+    val guardadoExitoso: Boolean = false
+)
+
+// ==========================================
+// 2. VIEWMODEL (Lógica de Negocio y Estado)
+// ==========================================
+class AnimoViewModel : ViewModel() {
+    private val _estadoFormulario = MutableStateFlow(EstadoFormularioAnimo())
+    val estadoFormulario: StateFlow<EstadoFormularioAnimo> = _estadoFormulario.asStateFlow()
+
+    private val _historialRegistros = MutableStateFlow<List<RegistroAnimo>>(emptyList())
+    val historialRegistros: StateFlow<List<RegistroAnimo>> = _historialRegistros.asStateFlow()
+
+    fun seleccionarEmocion(emocion: String) {
+        _estadoFormulario.value = _estadoFormulario.value.copy(
+            emocionSeleccionada = emocion,
+            mensajeError = null
+        )
+    }
+
+    fun seleccionarIntensidad(nivel: Int) {
+        _estadoFormulario.value = _estadoFormulario.value.copy(
+            intensidad = nivel,
+            mensajeError = null
+        )
+    }
+
+    fun actualizarNota(texto: String) {
+        _estadoFormulario.value = _estadoFormulario.value.copy(notaTexto = texto)
+    }
+
+    // VALIDACIÓN Y PERSISTENCIA
+    fun guardarRegistro(onExito: () -> Unit) {
+        val estadoActual = _estadoFormulario.value
+
+        // REGLA DE VALIDACIÓN 1: Debe seleccionar una emoción
+        if (estadoActual.emocionSeleccionada.isEmpty()) {
+            _estadoFormulario.value = estadoActual.copy(mensajeError = "Debes seleccionar una emoción.")
+            return
+        }
+
+        // REGLA DE VALIDACIÓN 2: Debe seleccionar un nivel de intensidad
+        if (estadoActual.intensidad == 0) {
+            _estadoFormulario.value = estadoActual.copy(mensajeError = "Selecciona un nivel de intensidad (1 al 5).")
+            return
+        }
+
+        // Creación del nuevo registro
+        val nuevoRegistro = RegistroAnimo(
+            emocion = estadoActual.emocionSeleccionada,
+            intensidad = estadoActual.intensidad,
+            nota = estadoActual.notaTexto.ifBlank { "Sin nota" },
+            fechaHora = "Hoy - " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+        )
+
+        // Actualización persistente en el estado de la lista
+        _historialRegistros.value = listOf(nuevoRegistro) + _historialRegistros.value
+
+        // Limpiar el formulario y activar confirmación
+        _estadoFormulario.value = EstadoFormularioAnimo(guardadoExitoso = true)
+
+        onExito()
+    }
+
+    fun ocultarBannerConfirmacion() {
+        _estadoFormulario.value = _estadoFormulario.value.copy(guardadoExitoso = false)
+    }
+}
+
+// ==========================================
+// 3. ACTIVIDAD PRINCIPAL
+// ==========================================
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,7 +124,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    ControladorDeAcceso()
+                    AppPrincipal()
                 }
             }
         }
@@ -34,156 +132,72 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ControladorDeAcceso() {
+fun AppPrincipal() {
     val context = LocalContext.current
-    // Acceso al almacenamiento local de preferencias
-    val sharedPref = remember { context.getSharedPreferences("MobData", Context.MODE_PRIVATE) }
+    val sharedPref = remember { context.getSharedPreferences("LemacPrefs", Context.MODE_PRIVATE) }
+    var aliasUsuario by remember { mutableStateOf(sharedPref.getString("alias", "") ?: "") }
 
-    // Leemos si ya existe un alias guardado
-    var aliasGuardado by remember {
-        mutableStateOf(sharedPref.getString("alias_usuario", "") ?: "")
-    }
-
-    if (aliasGuardado.isEmpty()) {
-        // PANTALLA 1: RF01 - Autenticación Sintética y Consentimiento
-        PantallaLoginSintetico(
-            onIngresar = { nuevoAlias, notificaciones ->
-                // Guardamos en el almacenamiento local
-                sharedPref.edit()
-                    .putString("alias_usuario", nuevoAlias)
-                    .putBoolean("notificaciones_discretas", notificaciones)
-                    .apply()
-                // Actualizamos el estado para cambiar de pantalla
-                aliasGuardado = nuevoAlias
-            }
-        )
+    if (aliasUsuario.isEmpty()) {
+        PantallaLogin(onLogin = { alias ->
+            sharedPref.edit().putString("alias", alias).apply()
+            aliasUsuario = alias
+        })
     } else {
-        // PANTALLA 2: Dashboard Principal
-        PantallaPrincipal(
-            aliasUsuario = aliasGuardado,
-            onCerrarSesion = {
-                // Borramos las preferencias guardadas
-                sharedPref.edit().clear().apply()
-                aliasGuardado = ""
-            }
-        )
+        PantallaDashboard(alias = aliasUsuario, onLogout = {
+            sharedPref.edit().clear().apply()
+            aliasUsuario = ""
+        })
     }
 }
 
+// ==========================================
+// 4. PANTALLAS Y UI CON RECURSOS NATIVOS
+// ==========================================
 @Composable
-fun PantallaLoginSintetico(onIngresar: (String, Boolean) -> Unit) {
-    var aliasInput by remember { mutableStateOf("Usuario_Sintetico_01") }
-    var activarNotificaciones by remember { mutableStateOf(true) }
-    var errorTexto by remember { mutableStateOf("") }
+fun PantallaLogin(onLogin: (String) -> Unit) {
+    var inputAlias by remember { mutableStateOf("Usuario_Sintetico_01") }
+    var errorMsg by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "MobData",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
+        Text("Lemac DataLab", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Text("Autorregistro en Salud Mental", fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Tarjeta de Descargo Legal / Privacidad (Requerimiento Académico)
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "⚠️ Aviso Legal y Privacidad",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Este es un MVP académico de autorregistro. Funciona 100% con datos sintéticos. No emite diagnósticos, no receta tratamientos ni sustituye la atención profesional ni de urgencia.",
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Campo para ingresar el Alias Ficticio
         OutlinedTextField(
-            value = aliasInput,
-            onValueChange = {
-                aliasInput = it
-                if (it.isNotEmpty()) errorTexto = ""
-            },
-            label = { Text("Alias o Identificador Ficticio") },
-            placeholder = { Text("Ej: Usuario_01") },
-            singleLine = true,
+            value = inputAlias,
+            onValueChange = { inputAlias = it; errorMsg = "" },
+            label = { Text("Alias Ficticio") },
             modifier = Modifier.fillMaxWidth()
         )
 
-        if (errorTexto.isNotEmpty()) {
-            Text(
-                text = errorTexto,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+        if (errorMsg.isNotEmpty()) {
+            Text(errorMsg, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Switch de Preferencias (Recordatorios discretos)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Recordatorios discretos", fontWeight = FontWeight.Medium)
-                Text(
-                    text = "Notificaciones locales sin texto sensible",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = activarNotificaciones,
-                onCheckedChange = { activarNotificaciones = it }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Botón de Ingreso
         Button(
             onClick = {
-                if (aliasInput.trim().isEmpty()) {
-                    errorTexto = "Debes ingresar un alias ficticio para continuar."
+                if (inputAlias.trim().isEmpty()) {
+                    errorMsg = "Ingresa un alias para continuar"
                 } else {
-                    onIngresar(aliasInput.trim(), activarNotificaciones)
+                    onLogin(inputAlias.trim())
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
+            modifier = Modifier.fillMaxWidth().height(50.dp)
         ) {
-            Text("INGRESAR A LA APLICACIÓN", fontSize = 16.sp)
+            Text("INGRESAR")
         }
     }
 }
 
 @Composable
-fun PantallaPrincipal(aliasUsuario: String, onCerrarSesion: () -> Unit) {
+fun PantallaDashboard(alias: String, onLogout: () -> Unit, viewModel: AnimoViewModel = viewModel()) {
     var pestanaSeleccionada by remember { mutableStateOf(0) }
 
     Scaffold(
@@ -192,86 +206,180 @@ fun PantallaPrincipal(aliasUsuario: String, onCerrarSesion: () -> Unit) {
                 NavigationBarItem(
                     selected = pestanaSeleccionada == 0,
                     onClick = { pestanaSeleccionada = 0 },
-                    label = { Text("Ánimo") },
-                    icon = { Text("") }
+                    label = { Text("Registro") },
+                    icon = { Text("📝") }
                 )
                 NavigationBarItem(
                     selected = pestanaSeleccionada == 1,
                     onClick = { pestanaSeleccionada = 1 },
-                    label = { Text("Neuro") },
-                    icon = { Text("") }
-                )
-                NavigationBarItem(
-                    selected = pestanaSeleccionada == 2,
-                    onClick = { pestanaSeleccionada = 2 },
-                    label = { Text("DBT") },
-                    icon = { Text("") }
-                )
-                NavigationBarItem(
-                    selected = pestanaSeleccionada == 3,
-                    onClick = { pestanaSeleccionada = 3 },
-                    label = { Text("Adicciones") },
-                    icon = { Text("") }
+                    label = { Text("Historial") },
+                    icon = { Text("📊") }
                 )
             }
         }
-    ) { espacioPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(espacioPadding)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                // Encabezado con información del perfil autenticado (RF01)
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                // Header Perfil
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Hola! ",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = aliasUsuario,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                        TextButton(onClick = onCerrarSesion) {
-                            Text("Salir")
-                        }
-                    }
+                    Text("Hola, $alias", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    TextButton(onClick = onLogout) { Text("Salir") }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Contenido dinámico según la pestaña
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                when (pestanaSeleccionada) {
+                    0 -> FormularioAnimoScreen(viewModel)
+                    1 -> HistorialAnimoScreen(viewModel)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FormularioAnimoScreen(viewModel: AnimoViewModel) {
+    val estado by viewModel.estadoFormulario.collectAsState()
+
+    // RECURSO NATIVO: Acceso al motor de vibración (Feedback Háptico del hardware)
+    val haptic = LocalHapticFeedback.current
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text("Check-in de Estado de Ánimo", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ANIMACIÓN DE CONFIRMACIÓN (AnimatedVisibility)
+        AnimatedVisibility(
+            visible = estado.guardadoExitoso,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    when (pestanaSeleccionada) {
-                        0 -> Text("Módulo: Estado de Ánimo\n(Siguiente paso: Formulario)", textAlign = TextAlign.Center)
-                        1 -> Text("Módulo: Neurodesarrollo\n(Siguiente paso: Formulario)", textAlign = TextAlign.Center)
-                        2 -> Text("Módulo: Habilidades DBT\n(Siguiente paso: Formulario)", textAlign = TextAlign.Center)
-                        3 -> Text("Módulo: Adicciones\n(Siguiente paso: Formulario)", textAlign = TextAlign.Center)
+                    Text("✅ Registro guardado localmente", modifier = Modifier.weight(1f))
+                    TextButton(onClick = { viewModel.ocultarBannerConfirmacion() }) { Text("OK") }
+                }
+            }
+        }
+
+        // Selección de Emoción
+        Text("1. Selecciona tu emoción:", fontWeight = FontWeight.Medium)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(vertical = 8.dp)
+        ) {
+            val emociones = listOf("Calma 😊", "Tristeza 😔", "Ansiedad 😰")
+            emociones.forEach { opcion ->
+                FilterChip(
+                    selected = estado.emocionSeleccionada == opcion,
+                    onClick = {
+                        // Recurso Nativo: Vibración sutil al presionar
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.seleccionarEmocion(opcion)
+                    },
+                    label = { Text(opcion) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Nivel de Intensidad
+        Text("2. Nivel de intensidad (1 al 5):", fontWeight = FontWeight.Medium)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(vertical = 8.dp)
+        ) {
+            (1..5).forEach { nivel ->
+                OutlinedButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.seleccionarIntensidad(nivel)
+                    },
+                    colors = if (estado.intensidad == nivel) ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer) else ButtonDefaults.outlinedButtonColors()
+                ) {
+                    Text(nivel.toString())
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Nota Opcional
+        OutlinedTextField(
+            value = estado.notaTexto,
+            onValueChange = { viewModel.actualizarNota(it) },
+            label = { Text("Nota o contexto opcional") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Mensaje de Error si la Validación Falla
+        estado.mensajeError?.let { error ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Botón Guardar
+        Button(
+            onClick = {
+                viewModel.guardarRegistro(
+                    onExito = {
+                        // RECURSO NATIVO: Vibración de confirmación
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                )
+            },
+            modifier = Modifier.fillMaxWidth().height(50.dp)
+        ) {
+            Text("GUARDAR EN EL TELÉFONO")
+        }
+    }
+}
+
+@Composable
+fun HistorialAnimoScreen(viewModel: AnimoViewModel) {
+    val registros by viewModel.historialRegistros.collectAsState()
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text("Historial de Registros Guardados", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (registros.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No hay registros guardados aún.", color = MaterialTheme.colorScheme.outline)
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(registros) { reg ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(reg.emocion, fontWeight = FontWeight.Bold)
+                                Text("Nivel: ${reg.intensidad}/5", color = MaterialTheme.colorScheme.primary)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(reg.nota, fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(reg.fechaHora, fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                        }
                     }
                 }
             }
