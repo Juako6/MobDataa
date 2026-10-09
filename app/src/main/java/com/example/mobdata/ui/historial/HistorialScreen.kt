@@ -27,10 +27,14 @@ import com.example.mobdata.viewmodel.AnimoViewModel
 
 // ==========================================
 // PANTALLA: Historial de registros guardados (RF03)
-// El dato ingresado en el formulario se usa aquí
+// El dato ingresado en el formulario se usa aquí.
+// Cada tarjeta navega al detalle del registro.
 // ==========================================
 @Composable
-fun HistorialScreen(viewModel: AnimoViewModel) {
+fun HistorialScreen(
+    viewModel: AnimoViewModel,
+    onVerDetalle: (Long) -> Unit = {}
+) {
     val registros by viewModel.historialRegistros.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -52,6 +56,7 @@ fun HistorialScreen(viewModel: AnimoViewModel) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(registros) { reg ->
                     Card(
+                        onClick = { onVerDetalle(reg.id) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant

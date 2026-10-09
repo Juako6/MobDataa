@@ -34,7 +34,8 @@ import com.example.mobdata.viewmodel.AnimoViewModel
 fun DashboardScreen(
     alias: String,
     viewModel: AnimoViewModel,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onVerDetalle: (Long) -> Unit = {}
 ) {
     var pestanaSeleccionada by remember { mutableStateOf(0) }
 
@@ -71,7 +72,7 @@ fun DashboardScreen(
 
                 when (pestanaSeleccionada) {
                     0 -> FormularioAnimoScreen(viewModel)
-                    1 -> HistorialScreen(viewModel)
+                    1 -> HistorialScreen(viewModel, onVerDetalle)
                 }
             }
         }
