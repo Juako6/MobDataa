@@ -55,10 +55,11 @@ fun HistorialScreen(
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(registros) { reg ->
+                // key + animateItem: el registro nuevo aparece con animación al guardar
+                items(registros, key = { it.id }) { reg ->
                     Card(
                         onClick = { onVerDetalle(reg.id) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().animateItem(),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )
