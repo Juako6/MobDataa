@@ -64,7 +64,7 @@ fun DashboardScreen(
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Hola, $alias", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Buenas $alias", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     TextButton(onClick = onLogout) { Text("Salir") }
                 }
 

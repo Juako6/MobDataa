@@ -39,13 +39,13 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            "Lemac DataLab",
+            "MobData",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
         Text(
-            "Autorregistro en Salud Mental",
+            "Todos nos cuidamos entre todos",
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.secondary
         )
@@ -55,7 +55,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = estado.alias,
             onValueChange = viewModel::actualizarAlias,
-            label = { Text("Alias Ficticio") },
+            label = { Text("Alias") },
             isError = estado.mensajeError != null,
             supportingText = {
                 estado.mensajeError?.let { error ->
