@@ -2,6 +2,7 @@ package com.example.mobdata.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.example.mobdata.model.EstadoLogin
+import com.example.mobdata.model.Validaciones
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,22 +20,11 @@ class LoginViewModel : ViewModel() {
     }
 
     fun validarYIngresar(onExito: (String) -> Unit) {
-        val alias = _estado.value.alias.trim()
-
-        // REGLA 1 (campo obligatorio)
-        if (alias.isEmpty()) {
-            _estado.value = _estado.value.copy(mensajeError = "El alias es obligatorio.")
+        val error = Validaciones.validarAlias(_estado.value.alias)
+        if (error != null) {
+            _estado.value = _estado.value.copy(mensajeError = error)
             return
         }
-
-        // REGLA 2 (longitud mínima)
-        if (alias.length < 3) {
-            _estado.value = _estado.value.copy(
-                mensajeError = "El alias debe tener al menos 3 caracteres."
-            )
-            return
-        }
-
-        onExito(alias)
+        onExito(_estado.value.alias.trim())
     }
 }

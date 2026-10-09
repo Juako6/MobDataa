@@ -14,10 +14,13 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mobdata.model.formatearFecha
 import com.example.mobdata.viewmodel.AnimoViewModel
 
 // ==========================================
@@ -31,7 +34,9 @@ fun DetalleRegistroScreen(
     viewModel: AnimoViewModel,
     onVolver: () -> Unit
 ) {
-    val registro = viewModel.buscarPorId(registroId)
+    // Consulta reactiva: cuando Room emite la lista, el detalle se actualiza
+    val registros by viewModel.historialRegistros.collectAsState()
+    val registro = registros.find { it.id == registroId }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp)
@@ -86,7 +91,7 @@ fun DetalleRegistroScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text("Fecha", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
-                    Text(registro.fechaHora, fontSize = 16.sp)
+                    Text(formatearFecha(registro.fecha), fontSize = 16.sp)
                 }
             }
         }

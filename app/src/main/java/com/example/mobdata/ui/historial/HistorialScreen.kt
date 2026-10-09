@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mobdata.model.formatearFecha
 import com.example.mobdata.viewmodel.AnimoViewModel
 
 // ==========================================
@@ -77,7 +78,7 @@ fun HistorialScreen(
                             Text(reg.nota, fontSize = 14.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                reg.fechaHora,
+                                formatearFecha(reg.fecha),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.outline
                             )
