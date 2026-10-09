@@ -1,5 +1,10 @@
 package com.example.mobdata.ui.animo
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -26,12 +31,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.example.mobdata.util.Notificaciones
 import com.example.mobdata.viewmodel.AnimoViewModel
 
 // ==========================================
@@ -44,6 +55,33 @@ fun FormularioAnimoScreen(viewModel: AnimoViewModel) {
 
     // RECURSO NATIVO: feedback háptico del hardware
     val haptic = LocalHapticFeedback.current
+
+    // RECURSO NATIVO: notificación local al confirmar el guardado
+    val contexto = LocalContext.current
+    var emocionPendiente by remember { mutableStateOf<String?>(null) }
+    val permisoNotificacion = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        val emocion = emocionPendiente
+        if (concedido && emocion != null) {
+            Notificaciones.confirmarCheckIn(contexto, emocion)
+        }
+        emocionPendiente = null
+    }
+
+    fun intentarNotificar(emocion: String) {
+        val permisoConcedido = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(
+                contexto, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+        if (permisoConcedido) {
+            Notificaciones.confirmarCheckIn(contexto, emocion)
+        } else {
+            emocionPendiente = emocion
+            permisoNotificacion.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
@@ -147,9 +185,12 @@ fun FormularioAnimoScreen(viewModel: AnimoViewModel) {
 
         Button(
             onClick = {
+                // Se captura la emoción antes de guardar porque el formulario se limpia
+                val emocionGuardada = estado.emocionSeleccionada
                 viewModel.guardarRegistro(
                     onExito = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        intentarNotificar(emocionGuardada)
                     }
                 )
             },
