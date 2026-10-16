@@ -1,30 +1,103 @@
-# MobData
- 
-# Integrantes
-- Benjamin Leiton
-- Joaquin Castro
+# MobData 🧠📱
 
-# Problematica
+Aplicación Android de **autorregistro anónimo de salud mental** desarrollada con **Kotlin + Jetpack Compose** y arquitectura **MVVM**. Permite registrar el estado de ánimo (emoción, intensidad y nota) sin datos personales, guardar cada check-in **en la base de datos local del dispositivo (Room)** y consultar el historial con su detalle.
 
-En la actualidad, la información y el seguimiento personal en áreas de autocuidado y bienestar psicológico suelen encontrarse fragmentados. Las personas que buscan registrar y consultar datos sobre neurodesarrollo, habilidades DBT (terapia dialéctico-conductual), estado de ánimo y adicciones deben recurrir a notas independientes, recordatorios dispersos, documentos sueltos y distintas herramientas separadas.
+## Trazabilidad de requerimientos
 
-Esta falta de centralización genera los siguientes inconvenientes:
+| Requerimiento | Pantalla | Formulario / Componentes | ViewModel | Modelo / Entidad | Validaciones | Persistencia | Resultado |
+|---|---|---|---|---|---|---|---|
+| RF01: El usuario ingresa con un alias ficticio | `ui/login/LoginScreen.kt` | `OutlinedTextField` (alias) + `Button` | `LoginViewModel` | `EstadoLogin` | Alias obligatorio · mínimo 3 caracteres | Alias en `SharedPreferences` | Error en `supportingText` o navegación al Home |
+| RF02: El usuario registra un check-in de estado de ánimo | `ui/animo/FormularioAnimoScreen.kt` | `FilterChip` (emoción) · `OutlinedButton` (intensidad 1–5) · `OutlinedTextField` (nota) + `Button` Guardar | `AnimoViewModel` | `RegistroAnimo` (@Entity Room) | Emoción obligatoria · intensidad en rango 1–5 | **Room** (`registros_animo`) + notificación de confirmación | Error visible en rojo, banner animado de éxito y notificación local |
+| RF03: El usuario consulta el historial y el detalle de sus registros | `ui/historial/HistorialScreen.kt` · `ui/detalle/DetalleRegistroScreen.kt` | `LazyColumn` de `Card` clickeables | `AnimoViewModel` | `RegistroAnimo` | — | Lectura reactiva desde Room | Los registros persistidos aparecen (incluso tras cerrar la app) y navegan a su detalle por id |
 
-- Falta de continuidad y adherencia: El constante cambio entre herramientas dificulta mantener una rutina constante de autorregistro e incrementa la omisión de datos.
+## Flujo principal (probado de principio a fin)
 
-- Inconsistencia e invisibilidad del historial: Resulta complejo revisar antecedentes previos para analizar la evolución, identificar desencadenantes o evaluar la utilidad de las estrategias utilizadas.
+```
+Usuario ingresa información (emoción + intensidad + nota)
+   ↓
+Formulario valida (Validaciones: obligatorio + rango)
+   ↓         ↘ si falla → mensaje de error visible en rojo
+ViewModel procesa (AnimoViewModel)
+   ↓
+Cambia el estado (StateFlow + banner animado de éxito)
+   ↓
+La información se guarda (Room: base de datos local)
+   ↓
+El resultado aparece en pantalla (notificación local + historial reactivo)
+   ↓
+Historial → Detalle del registro (navegación con paso de id)
+```
 
-- Fricción de uso: La dispersión exige un mayor esfuerzo por parte de la persona usuaria para acceder a contenidos educativos o registrar eventos cotidianos de forma oportuna.
+## Arquitectura MVVM
 
-- Riesgos de privacidad: Al tratarse de un dominio sensible, el manejo desordenado de registros personales dificulta garantizar principios básicos de privacidad y minimización de datos.
+```
+app/src/main/java/com/example/mobdata/
+├── MainActivity.kt                  # Solo infla la app
+├── model/
+│   ├── EstadosUi.kt                 # EstadoFormularioAnimo, EstadoLogin, formatearFecha
+│   └── Validaciones.kt              # Reglas puras (testeables sin Android)
+├── data/                            # Persistencia local (Room)
+│   ├── RegistroAnimo.kt             # @Entity → tabla registros_animo
+│   ├── RegistroAnimoDao.kt          # Consultas (Flow reactivo) e inserciones
+│   └── AppDatabase.kt               # Base de datos local (singleton)
+├── viewmodel/
+│   ├── AnimoViewModel.kt            # Estado, validaciones y guardado del check-in
+│   └── LoginViewModel.kt            # Estado y validación del alias
+├── navigation/
+│   └── AppNavigation.kt             # NavController + NavHost (rutas y argumentos)
+├── util/
+│   └── Notificaciones.kt            # Recurso nativo: notificación de confirmación
+└── ui/
+    ├── login/LoginScreen.kt
+    ├── home/DashboardScreen.kt      # Pestañas Registro / Historial
+    ├── animo/FormularioAnimoScreen.kt
+    ├── historial/HistorialScreen.kt
+    └── detalle/DetalleRegistroScreen.kt
+```
 
+**Patrón:** la pantalla muestra información y envía eventos → el ViewModel valida y guarda en Room → Room emite la lista nueva → la pantalla se reconstruye sola. La lógica nunca vive en los componentes visuales.
 
-# Objetivo General
+## Persistencia local (Room)
 
-Desarrollar una aplicación móvil tipo Producto Mínimo Viable (MVP) que provea un punto único, accesible e integrado de autorregistro y consulta de recursos en cuatro ámbitos clave (neurodesarrollo, DBT, ánimo y adicciones), permitiendo a las personas usuarias gestionar de forma simple, ordenada y continua su propia información de seguimiento desde un dispositivo Android.
+- Entidad `RegistroAnimo` → tabla `registros_animo` (id autogenerado, emoción, intensidad, nota, fecha como timestamp).
+- El DAO expone `obtenerTodos(): Flow<List<RegistroAnimo>>`: **el historial se actualiza automáticamente** cada vez que se inserta un registro.
+- `AnimoViewModel` (AndroidViewModel) guarda con `viewModelScope.launch { dao.insertar(...) }`.
+- Los registros **sobreviven al cierre de la aplicación** y se recuperan al volver a entrar.
 
-Alcance y Enfoque del Proyecto:
+## Recursos nativos utilizados
 
-- Privacidad desde el diseño: El MVP funciona exclusivamente con datos de prueba sintéticos o ficticios para garantizar la protección de la información en el entorno académico.
-- Baja fricción: Diseñado para sesiones de uso breves y frecuentes, optimizando la trazabilidad temporal del historial mediante flujos claros.
-- Alcance delimitado: La herramienta no emite diagnósticos clínicos automatizados, no indica tratamientos médicos ni sustituye la atención o intervención de un profesional de la salud.
+| Recurso | Dónde | Por qué tiene sentido en esta app |
+|---|---|---|
+| **Notificaciones locales** (principal) | `util/Notificaciones.kt` + permiso `POST_NOTIFICATIONS` solicitado en runtime | El registro de ánimo es diario: la notificación confirma que el check-in quedó guardado aunque el usuario salga de la app, reforzando la constancia del autorregistro (adherencia). |
+| Vibración / feedback háptico | `FormularioAnimoScreen` (`LocalHapticFeedback`) | Confirmación táctil inmediata al seleccionar emoción/intensidad y al guardar. |
+| Almacenamiento local | Room + `SharedPreferences` | Los datos son del usuario y deben persistir en su dispositivo (app anónima, sin servidor). |
+
+## Animaciones con propósito
+
+1. **Banner de éxito animado** (`AnimatedVisibility` con fade + expand): aparece solo cuando el registro se guardó — confirmación visual del resultado.
+2. **Aparición animada de registros nuevos** (`animateItem` en el historial): al guardar, el registro entra con movimiento al tope de la lista — refleja el cambio de estado causado por el usuario.
+
+## Navegación
+
+Rutas gestionadas con `NavController` / `NavHost`:
+
+- `login` → alias ficticio (persistido en `SharedPreferences`; si existe, la app arranca directo en Home).
+- `home` → dashboard con pestañas Registro / Historial.
+- `detalle/{registroId}` → el **id viaja como argumento** (`NavType.LongType`); la pantalla consulta el registro en el estado reactivo del ViewModel.
+
+## Pruebas
+
+- **Unitarias (JVM):** `ValidacionesTest` — 7 casos cubriendo las reglas de RF01 y RF02 (vacío, fuera de rango, válidos). Ejecutar con `./gradlew testDebugUnitTest`.
+- **Del flujo manual (emulador):** guardar sin emoción → error; guardar válido → banner + notificación + registro en historial; tocar tarjeta → detalle; cerrar y reabrir la app → los registros siguen ahí.
+
+## Cómo compilar
+
+1. Abrir el proyecto en Android Studio (Kotlin 2.2.10, AGP 9, compileSdk 35, minSdk 24).
+2. Sincronizar Gradle (descarga KSP y Room automáticamente).
+3. `Build → Run 'app'` en emulador o dispositivo físico.
+
+## Equipo y ramas
+
+- Rama `BenjaRama` — Benjamin Leiton
+- Rama `Joaquin-Rama` — Joaquin Castro
+
