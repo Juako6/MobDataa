@@ -2,6 +2,8 @@ package com.example.mobdata.navigation
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -10,21 +12,36 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.mobdata.model.Ambito
+import com.example.mobdata.ui.animo.FormularioAnimoScreen
+import com.example.mobdata.ui.dbt.FormularioDbtScreen
 import com.example.mobdata.ui.detalle.DetalleRegistroScreen
 import com.example.mobdata.ui.home.DashboardScreen
 import com.example.mobdata.ui.login.LoginScreen
+import com.example.mobdata.ui.neurodesarrollo.FormularioNeurodesarrolloScreen
 import com.example.mobdata.viewmodel.AnimoViewModel
+import com.example.mobdata.viewmodel.CatalogoViewModel
+import com.example.mobdata.viewmodel.DbtViewModel
+import com.example.mobdata.viewmodel.HistorialViewModel
+import com.example.mobdata.viewmodel.NeurodesarrolloViewModel
 
 // ==========================================
-// NAVEGACIÓN: destinos de la app con NavController + NavHost
-// LOGIN -> HOME (pestañas Registro / Historial) -> DETALLE
+// NAVEGACIÓN con NavController + NavHost
+// LOGIN -> HOME (Inicio / Historial / Recursos)
+//            ├─ FORMULARIO/{ambito}/{registroId}  (0 = nuevo, >0 = editar)
+//            └─ DETALLE/{ambito}/{registroId}     (editar / eliminar)
 // ==========================================
 object Rutas {
     const val LOGIN = "login"
     const val HOME = "home"
-    const val DETALLE = "detalle/{registroId}"
+    const val FORMULARIO = "formulario/{ambito}/{registroId}"
+    const val DETALLE = "detalle/{ambito}/{registroId}"
 
-    fun detalle(registroId: Long) = "detalle/$registroId"
+    // Clave en el SavedStateHandle de HOME para recordar la pestaña activa
+    const val CLAVE_PESTANA = "pestana"
+
+    fun formulario(ambito: Ambito, registroId: Long = 0L) = "formulario/${ambito.name}/$registroId"
+    fun detalle(ambito: Ambito, registroId: Long) = "detalle/${ambito.name}/$registroId"
 }
 
 @Composable
@@ -39,8 +56,12 @@ fun AppNavigation() {
 
     val navController = rememberNavController()
 
-    // ViewModel único compartido entre pantallas (ámbito de la Activity)
+    // ViewModels compartidos entre pantallas (ámbito de la Activity)
     val animoViewModel: AnimoViewModel = viewModel()
+    val neuroViewModel: NeurodesarrolloViewModel = viewModel()
+    val dbtViewModel: DbtViewModel = viewModel()
+    val historialViewModel: HistorialViewModel = viewModel()
+    val catalogoViewModel: CatalogoViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -57,34 +78,74 @@ fun AppNavigation() {
             )
         }
 
-        composable(Rutas.HOME) {
+        composable(Rutas.HOME) { entry ->
+            // La pestaña activa se guarda en la entrada de navegación
+            val pestana by entry.savedStateHandle
+                .getStateFlow(Rutas.CLAVE_PESTANA, 0)
+                .collectAsState()
+
             DashboardScreen(
                 alias = sharedPref.getString("alias", "") ?: "",
-                viewModel = animoViewModel,
+                pestana = pestana,
+                onCambiarPestana = { entry.savedStateHandle[Rutas.CLAVE_PESTANA] = it },
+                historialViewModel = historialViewModel,
+                catalogoViewModel = catalogoViewModel,
+                onNuevoRegistro = { ambito ->
+                    navController.navigate(Rutas.formulario(ambito))
+                },
+                // PASO DE INFORMACIÓN: ámbito e id del registro viajan en la ruta
+                onVerDetalle = { ambito, registroId ->
+                    navController.navigate(Rutas.detalle(ambito, registroId))
+                },
                 onLogout = {
                     sharedPref.edit().clear().apply()
                     navController.navigate(Rutas.LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
-                },
-                // PASO DE INFORMACIÓN: el id del registro viaja en la ruta
-                onVerDetalle = { registroId ->
-                    navController.navigate(Rutas.detalle(registroId))
                 }
             )
         }
 
         composable(
-            route = Rutas.DETALLE,
+            route = Rutas.FORMULARIO,
             arguments = listOf(
+                navArgument("ambito") { type = NavType.StringType },
                 navArgument("registroId") { type = NavType.LongType }
             )
-        ) { backStackEntry ->
-            val registroId = backStackEntry.arguments?.getLong("registroId") ?: 0L
+        ) { entry ->
+            val ambito = Ambito.desdeNombre(entry.arguments?.getString("ambito")) ?: Ambito.ANIMO
+            val registroId = entry.arguments?.getLong("registroId") ?: 0L
+            val volver: () -> Unit = { navController.popBackStack() }
+            // "Ver en historial": vuelve a HOME dejando seleccionada la pestaña Historial
+            val verHistorial: () -> Unit = {
+                navController.getBackStackEntry(Rutas.HOME)
+                    .savedStateHandle[Rutas.CLAVE_PESTANA] = 1
+                navController.popBackStack(Rutas.HOME, inclusive = false)
+            }
+
+            when (ambito) {
+                Ambito.ANIMO -> FormularioAnimoScreen(animoViewModel, registroId, volver, verHistorial)
+                Ambito.NEURODESARROLLO ->
+                    FormularioNeurodesarrolloScreen(neuroViewModel, registroId, volver, verHistorial)
+                Ambito.DBT -> FormularioDbtScreen(dbtViewModel, registroId, volver, verHistorial)
+            }
+        }
+
+        composable(
+            route = Rutas.DETALLE,
+            arguments = listOf(
+                navArgument("ambito") { type = NavType.StringType },
+                navArgument("registroId") { type = NavType.LongType }
+            )
+        ) { entry ->
+            val ambito = Ambito.desdeNombre(entry.arguments?.getString("ambito")) ?: Ambito.ANIMO
+            val registroId = entry.arguments?.getLong("registroId") ?: 0L
             DetalleRegistroScreen(
+                ambito = ambito,
                 registroId = registroId,
-                viewModel = animoViewModel,
-                onVolver = { navController.popBackStack() }
+                viewModel = historialViewModel,
+                onVolver = { navController.popBackStack() },
+                onEditar = { navController.navigate(Rutas.formulario(ambito, registroId)) }
             )
         }
     }
