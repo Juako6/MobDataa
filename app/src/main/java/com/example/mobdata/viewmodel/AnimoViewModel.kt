@@ -5,86 +5,116 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mobdata.data.AppDatabase
 import com.example.mobdata.data.RegistroAnimo
+import com.example.mobdata.data.RegistroRepository
 import com.example.mobdata.model.EstadoFormularioAnimo
 import com.example.mobdata.model.Validaciones
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 // ==========================================
-// VIEWMODEL: estado, validaciones y guardado del check-in.
-// Ahora persiste en Room: los registros sobreviven
-// al cierre de la aplicación y se recuperan al volver a entrar.
-// SCREEN -> evento -> VIEWMODEL -> validación -> Room -> estado -> SCREEN
+// VIEWMODEL: formulario de estado de ánimo (crear y editar).
+// SCREEN -> evento -> VIEWMODEL -> validación -> Repository -> Room -> estado -> SCREEN
 // ==========================================
 class AnimoViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val dao = AppDatabase.obtener(app).registroAnimoDao()
+    private val repositorio = RegistroRepository(AppDatabase.obtener(app))
 
     private val _estadoFormulario = MutableStateFlow(EstadoFormularioAnimo())
     val estadoFormulario: StateFlow<EstadoFormularioAnimo> = _estadoFormulario.asStateFlow()
 
-    // Historial reactivo: Room emite la lista cada vez que la tabla cambia,
-    // así la UI se actualiza sola al insertar un registro.
-    val historialRegistros: StateFlow<List<RegistroAnimo>> = dao.obtenerTodos().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = emptyList()
-    )
+    // Prepara el formulario vacío (registro nuevo)
+    fun iniciarNuevo() {
+        _estadoFormulario.value = EstadoFormularioAnimo()
+    }
+
+    // Carga un registro existente de Room para editarlo
+    fun cargarParaEditar(id: Long) {
+        _estadoFormulario.value = EstadoFormularioAnimo(idEdicion = id)
+        viewModelScope.launch {
+            val registro = repositorio.obtenerAnimo(id) ?: return@launch
+            _estadoFormulario.value = EstadoFormularioAnimo(
+                emocionSeleccionada = registro.emocion,
+                intensidad = registro.intensidad,
+                notaTexto = if (registro.nota == NOTA_VACIA) "" else registro.nota,
+                idEdicion = registro.id,
+                fechaOriginal = registro.fecha
+            )
+        }
+    }
 
     fun seleccionarEmocion(emocion: String) {
         _estadoFormulario.value = _estadoFormulario.value.copy(
-            emocionSeleccionada = emocion,
-            mensajeError = null
+            emocionSeleccionada = emocion, mensajeError = null, guardadoExitoso = false
         )
     }
 
     fun seleccionarIntensidad(nivel: Int) {
         _estadoFormulario.value = _estadoFormulario.value.copy(
-            intensidad = nivel,
-            mensajeError = null
+            intensidad = nivel, mensajeError = null, guardadoExitoso = false
         )
     }
 
     fun actualizarNota(texto: String) {
-        _estadoFormulario.value = _estadoFormulario.value.copy(notaTexto = texto)
+        _estadoFormulario.value = _estadoFormulario.value.copy(
+            notaTexto = texto, mensajeError = null, guardadoExitoso = false
+        )
     }
 
-    // VALIDACIÓN Y GUARDADO EN LA BASE DE DATOS LOCAL
+    // VALIDACIÓN Y GUARDADO (INSERT si es nuevo, UPDATE si se está editando)
     fun guardarRegistro(onExito: () -> Unit) {
-        val estadoActual = _estadoFormulario.value
+        val e = _estadoFormulario.value
 
-        // Reglas del formulario (obligatorio + rango 1..5)
-        val error = Validaciones.validarCheckIn(
-            estadoActual.emocionSeleccionada,
-            estadoActual.intensidad
-        )
+        val error = Validaciones.validarCheckIn(e.emocionSeleccionada, e.intensidad, e.notaTexto)
         if (error != null) {
-            _estadoFormulario.value = estadoActual.copy(mensajeError = error)
+            _estadoFormulario.value = e.copy(mensajeError = error)
             return
         }
 
-        val nuevoRegistro = RegistroAnimo(
-            emocion = estadoActual.emocionSeleccionada,
-            intensidad = estadoActual.intensidad,
-            nota = estadoActual.notaTexto.ifBlank { "Sin nota" }
-        )
-
-        // Persistencia local: inserción asíncrona en Room
         viewModelScope.launch {
-            dao.insertar(nuevoRegistro)
+            try {
+                val nota = e.notaTexto.trim().ifBlank { NOTA_VACIA }
+                if (e.modoEdicion) {
+                    repositorio.actualizarAnimo(
+                        RegistroAnimo(
+                            id = e.idEdicion,
+                            emocion = e.emocionSeleccionada,
+                            intensidad = e.intensidad,
+                            nota = nota,
+                            fecha = e.fechaOriginal
+                            // sincronizado = false: el cambio queda pendiente de sincronizar
+                        )
+                    )
+                    _estadoFormulario.value = e.copy(guardadoExitoso = true, mensajeError = null)
+                } else {
+                    repositorio.insertarAnimo(
+                        RegistroAnimo(
+                            emocion = e.emocionSeleccionada,
+                            intensidad = e.intensidad,
+                            nota = nota
+                        )
+                    )
+                    // Formulario limpio + confirmación visible
+                    _estadoFormulario.value = EstadoFormularioAnimo(guardadoExitoso = true)
+                }
+                onExito()
+            } catch (ex: CancellationException) {
+                throw ex
+            } catch (ex: Exception) {
+                _estadoFormulario.value = e.copy(
+                    mensajeError = "No se pudo guardar el registro. Inténtalo nuevamente."
+                )
+            }
         }
-
-        // Limpiar formulario y activar confirmación visible
-        _estadoFormulario.value = EstadoFormularioAnimo(guardadoExitoso = true)
-
-        onExito()
     }
 
     fun ocultarBannerConfirmacion() {
         _estadoFormulario.value = _estadoFormulario.value.copy(guardadoExitoso = false)
+    }
+
+    private companion object {
+        const val NOTA_VACIA = "Sin nota"
     }
 }
