@@ -1,3 +1,4 @@
+
 package com.example.mobdata.ui.login
 
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -50,12 +53,29 @@ fun LoginScreen(
             color = MaterialTheme.colorScheme.secondary
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // RNF04: declaración de alcance visible antes de ingresar
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+        ) {
+            Text(
+                "Prototipo académico de autorregistro. No entrega diagnósticos ni " +
+                    "tratamientos, no reemplaza a un profesional de la salud y no es un " +
+                    "servicio de urgencias. Usa solo datos ficticios.",
+                fontSize = 12.sp,
+                modifier = Modifier.padding(12.dp)
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedTextField(
             value = estado.alias,
             onValueChange = viewModel::actualizarAlias,
-            label = { Text("Alias") },
+            label = { Text("Alias ficticio") },
             isError = estado.mensajeError != null,
             supportingText = {
                 estado.mensajeError?.let { error ->
@@ -72,7 +92,7 @@ fun LoginScreen(
             onClick = { viewModel.validarYIngresar(onLoginSuccess) },
             modifier = Modifier.fillMaxWidth().height(50.dp)
         ) {
-            Text("INGRESAR")
+            Text("COMENZAR")
         }
     }
 }
