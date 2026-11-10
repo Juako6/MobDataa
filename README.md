@@ -140,7 +140,7 @@ Verificación rápida desde la terminal:
 
 ```bash
 ./gradlew compileDebugKotlin      # compila las pantallas
-./gradlew testDebugUnitTest       # 46 pruebas unitarias
+./gradlew testDebugUnitTest       # 26 pruebas unitarias
 ./gradlew assembleDebug           # genera app/build/outputs/apk/debug/app-debug.apk
 ```
 
