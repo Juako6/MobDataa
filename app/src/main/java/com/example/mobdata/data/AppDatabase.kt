@@ -12,15 +12,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 // v1: registros_animo
 // v2: + sincronizado en registros_animo, registros_neurodesarrollo,
 //       registros_dbt y catalogo_contenidos
+// v3: + usuarios (cuentas locales de acceso, RF01)
 // ==========================================
 @Database(
     entities = [
         RegistroAnimo::class,
         RegistroNeurodesarrollo::class,
         RegistroDbt::class,
-        ContenidoCatalogo::class
+        ContenidoCatalogo::class,
+        Usuario::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun registroNeurodesarrolloDao(): RegistroNeurodesarrolloDao
     abstract fun registroDbtDao(): RegistroDbtDao
     abstract fun catalogoDao(): CatalogoDao
+    abstract fun usuarioDao(): UsuarioDao
 
     companion object {
         @Volatile
@@ -73,6 +76,24 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migración 2 -> 3: agrega la tabla de cuentas locales (RF01)
+        // sin tocar los registros ya guardados.
+        private val MIGRACION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS usuarios (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "alias TEXT NOT NULL, " +
+                        "passwordHash TEXT NOT NULL, " +
+                        "fechaCreacion INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_usuarios_alias " +
+                        "ON usuarios(alias)"
+                )
+            }
+        }
+
         fun obtener(context: Context): AppDatabase =
             INSTANCIA ?: synchronized(this) {
                 INSTANCIA ?: Room.databaseBuilder(
@@ -80,7 +101,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "lemacdata.db"
                 )
-                    .addMigrations(MIGRACION_1_2)
+                    .addMigrations(MIGRACION_1_2, MIGRACION_2_3)
                     .build()
                     .also { INSTANCIA = it }
             }
