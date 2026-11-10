@@ -80,6 +80,75 @@ class ValidacionesTest {
         assertNotNull(Validaciones.validarAlias("12345678-K"))
     }
 
+    // ---- RF01: contraseña local ----
+
+    @Test
+    fun passwordVaciaDevuelveErrorDeObligatorio() {
+        assertEquals("La contraseña es obligatoria.", Validaciones.validarPassword(""))
+    }
+
+    @Test
+    fun passwordMuyCortaDevuelveErrorDeLongitud() {
+        assertEquals(
+            "La contraseña debe tener al menos 8 caracteres.",
+            Validaciones.validarPassword("corta12")
+        )
+    }
+
+    @Test
+    fun passwordMuyLargaDevuelveError() {
+        assertNotNull(Validaciones.validarPassword("x".repeat(65)))
+    }
+
+    @Test
+    fun passwordSoloEspaciosDevuelveError() {
+        assertEquals(
+            "La contraseña no puede ser solo espacios.",
+            Validaciones.validarPassword("        ")
+        )
+    }
+
+    @Test
+    fun passwordValidaNoDevuelveError() {
+        assertNull(Validaciones.validarPassword("claveSegura123"))
+    }
+
+    @Test
+    fun confirmacionVaciaDevuelveError() {
+        assertEquals(
+            "Debes repetir la contraseña.",
+            Validaciones.validarConfirmacionPassword("claveSegura123", "")
+        )
+    }
+
+    @Test
+    fun confirmacionDistintaDevuelveError() {
+        assertEquals(
+            "Las contraseñas no coinciden.",
+            Validaciones.validarConfirmacionPassword("claveSegura123", "claveSegura124")
+        )
+    }
+
+    @Test
+    fun confirmacionIgualNoDevuelveError() {
+        assertNull(
+            Validaciones.validarConfirmacionPassword("claveSegura123", "claveSegura123")
+        )
+    }
+
+    @Test
+    fun aliasYaRegistradoDevuelveError() {
+        assertEquals(
+            "Ese alias ya está registrado. Elige otro o inicia sesión.",
+            Validaciones.validarAliasDisponible("usuario1", existe = true)
+        )
+    }
+
+    @Test
+    fun aliasDisponibleNoDevuelveError() {
+        assertNull(Validaciones.validarAliasDisponible("usuario1", existe = false))
+    }
+
     // ---- RNF03: detección de datos personales ----
 
     @Test
