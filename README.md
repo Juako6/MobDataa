@@ -94,11 +94,21 @@ app/src/main/java/com/example/mobdata/
 3. **Despliegue de lecturas/guías** en Recursos (`AnimatedVisibility`).
 
 ## Interfaz y sistema de diseño
-- **Paleta verde-teal institucional** (`ui/theme/Color.kt` + `Theme.kt`): el color primario `#00695C` (verde-teal profundo) y el terciario azul `#1A5FB4` buscan transmitir confianza, calma y contexto de salud. Hay esquemas claro y oscuro completos.
-- **Color dinámico desactivado** a propósito: la identidad de la app no cambia según el fondo de pantalla del teléfono (Android 12+).
-- **Iconografía vectorial**: los emojis (😊 🧩 🛠️ ✅ 📱 ☁️ 📝 📊 📚) se reemplazaron por íconos de Material (`ImageVector`) en `Ambito.icono` y en el resto de la interfaz, con `contentDescription` donde aporta accesibilidad.
-- **Jerarquía tipográfica** definida en `ui/theme/Type.kt` (`titleLarge`, `titleMedium`, `labelLarge`, etc.) y usada de forma consistente en las pantallas.
-- **Barra de navegación inferior** con indicador en el color primario, encabezado con saludo al usuario e ícono de cerrar sesión, y tarjetas de módulo con ícono en círculo `primaryContainer`.
+Sistema visual institucional inspirado en el lenguaje de las apps de salud (referencia: CMQ Salud), adaptado a MobData.
+
+- **Paleta semántica** (`ui/theme/Color.kt` + `Theme.kt`), con roles con nombre en lugar de valores literales en las pantallas:
+  - Tinta `Spruce #173F38` → texto principal, títulos y marca.
+  - Acción `Teal #1D6B5A` → acción primaria, selección y enlaces.
+  - Fondo `Paper #F5F7F4` y superficie `Surface #FFFFFF` → pantalla y tarjetas.
+  - Acento suave `SoftSage #E8F0EB`, texto secundario `#536A62`, borde `#D5E0DA`.
+  - Estados: atención `#82580A`/`#FFF1CE`, error `#A8343F`/`#FDEBEC`, éxito `#216A49`/`#E7F3EB`.
+- **Color dinámico desactivado** a propósito: la identidad es fija en todos los dispositivos. Hay esquemas claro y oscuro.
+- **Tarjetas blancas con borde suave** (radio 16 dp) sobre fondo papel; el contenido se agrupa en lugar de flotar con sombras fuertes.
+- **Iconografía vectorial**: los emojis se reemplazaron por íconos de Material (`ImageVector`) en `Ambito.icono` y en el resto de la interfaz, con `contentDescription` donde aporta accesibilidad.
+- **Componentes base reutilizables** (`ui/componentes/Componentes.kt`): `BotonPrincipal` (con estado de carga), `BotonSecundario`, `CampoFormulario` (etiqueta persistente + ayuda/error), `TarjetaContenedora`, selectores de opciones y escala.
+- **Tipografía** en `ui/theme/Type.kt`: título de pantalla 28sp, sección 20sp, tarjeta 16sp, cuerpo 15sp, metadato 12sp mínimo.
+- **Pantalla de acceso** con marca (logo + nombre), tarjeta blanca de credenciales y modos *Iniciar sesión* / *Crear cuenta* segmentados.
+- **Inicio** con saludo personalizado y círculo de iniciales, tarjeta destacada en verde profundo y tarjetas de módulo con ícono y flecha; **barra inferior** con indicador `SoftSage`.
 
 
 ## Pruebas

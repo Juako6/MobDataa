@@ -1,6 +1,8 @@
 package com.example.mobdata.ui.recursos
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -22,7 +24,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -37,6 +38,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mobdata.data.ContenidoCatalogo
 import com.example.mobdata.data.TiposContenido
+import com.example.mobdata.ui.theme.Divider
+import com.example.mobdata.ui.theme.SoftSage
+import com.example.mobdata.ui.theme.Spruce
+import com.example.mobdata.ui.theme.Surface
+import com.example.mobdata.ui.theme.Teal
+import com.example.mobdata.ui.theme.TextSecondary
 import com.example.mobdata.viewmodel.CatalogoViewModel
 
 // ==========================================
@@ -50,20 +57,20 @@ fun RecursosScreen(viewModel: CatalogoViewModel) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             "Biblioteca de recursos",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground
+            style = MaterialTheme.typography.headlineMedium,
+            color = Spruce
         )
         Text(
             "Contenido educativo. No reemplaza la atención de un profesional.",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            fontSize = 13.sp,
+            color = TextSecondary
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         val lecturas = contenidos.filter { it.tipo == TiposContenido.PSICOEDUCATIVO }
         val habilidades = contenidos.filter { it.tipo == TiposContenido.HABILIDAD_DBT }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (lecturas.isNotEmpty()) {
                 item(key = "titulo-lecturas") { SeccionTitulo("Lecturas psicoeducativas") }
                 items(lecturas, key = { "c-${it.id}" }) { TarjetaContenido(it) }
@@ -80,8 +87,9 @@ fun RecursosScreen(viewModel: CatalogoViewModel) {
 private fun SeccionTitulo(texto: String) {
     Text(
         texto,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.SemiBold,
+        color = Spruce,
+        style = MaterialTheme.typography.titleLarge,
         modifier = Modifier.padding(top = 8.dp)
     )
 }
@@ -93,52 +101,52 @@ private fun TarjetaContenido(contenido: ContenidoCatalogo, mostrarCategoria: Boo
     Card(
         onClick = { abierto = !abierto },
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface),
+        border = BorderStroke(1.dp, Divider),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.size(36.dp)
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(SoftSage, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Filled.MenuBook,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Icon(
+                        Icons.Filled.MenuBook,
+                        contentDescription = null,
+                        tint = Teal,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
                 Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
                     Text(
                         contenido.titulo,
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Spruce
                     )
                     if (mostrarCategoria) {
                         Text(
                             contenido.categoria,
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = TextSecondary
                         )
                     }
                 }
                 Icon(
                     imageVector = if (abierto) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    contentDescription = if (abierto) "Contraer" else "Expandir",
+                    tint = TextSecondary
                 )
             }
             AnimatedVisibility(visible = abierto) {
                 Text(
                     contenido.descripcion,
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 20.sp,
+                    color = TextSecondary,
                     modifier = Modifier.padding(top = 10.dp)
                 )
             }

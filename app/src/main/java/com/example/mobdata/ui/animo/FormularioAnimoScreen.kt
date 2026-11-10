@@ -1,5 +1,6 @@
 package com.example.mobdata.ui.animo
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,11 +20,13 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.example.mobdata.ui.componentes.BannerExito
 import com.example.mobdata.ui.componentes.BotonGuardar
+import com.example.mobdata.ui.componentes.CampoFormulario
 import com.example.mobdata.ui.componentes.EncabezadoPantalla
 import com.example.mobdata.ui.componentes.MensajeError
 import com.example.mobdata.ui.componentes.SelectorEscala
 import com.example.mobdata.ui.componentes.SelectorOpciones
 import com.example.mobdata.ui.componentes.rememberNotificadorRegistro
+import com.example.mobdata.ui.theme.Paper
 import com.example.mobdata.viewmodel.AnimoViewModel
 
 private val EMOCIONES = listOf("Calma", "Tristeza", "Ansiedad", "Enojo", "Alegría")
@@ -51,7 +53,8 @@ fun FormularioAnimoScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .background(Paper)
+            .padding(20.dp)
             .verticalScroll(rememberScrollState())
     ) {
         EncabezadoPantalla(
@@ -69,7 +72,7 @@ fun FormularioAnimoScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         SelectorOpciones(
-            titulo = "1. Selecciona tu emoción:",
+            titulo = "1. Selecciona tu emoción",
             opciones = EMOCIONES,
             seleccion = estado.emocionSeleccionada,
             onSeleccion = viewModel::seleccionarEmocion
@@ -78,19 +81,21 @@ fun FormularioAnimoScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         SelectorEscala(
-            titulo = "2. Nivel de intensidad (1 al 5):",
+            titulo = "2. Nivel de intensidad (1 al 5)",
             valor = estado.intensidad,
             onValor = viewModel::seleccionarIntensidad
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        OutlinedTextField(
-            value = estado.notaTexto,
-            onValueChange = viewModel::actualizarNota,
-            label = { Text("3. Nota o contexto (opcional)") },
-            supportingText = { Text("Usa solo datos ficticios.") },
-            modifier = Modifier.fillMaxWidth()
+        CampoFormulario(
+            valor = estado.notaTexto,
+            onValorChange = viewModel::actualizarNota,
+            etiqueta = "3. Nota o contexto (opcional)",
+            ayuda = "Usa solo datos ficticios.",
+            singleLine = false,
+            minLines = 2,
+            maxLines = 4
         )
 
         MensajeError(estado.mensajeError)

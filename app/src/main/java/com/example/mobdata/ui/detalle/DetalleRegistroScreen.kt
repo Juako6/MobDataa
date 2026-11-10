@@ -1,5 +1,7 @@
 package com.example.mobdata.ui.detalle
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,17 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,8 +34,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mobdata.model.Ambito
 import com.example.mobdata.model.formatearFecha
+import com.example.mobdata.ui.componentes.BotonPrincipal
+import com.example.mobdata.ui.componentes.BotonSecundario
 import com.example.mobdata.ui.componentes.EncabezadoPantalla
 import com.example.mobdata.ui.componentes.EtiquetaSincronizacion
+import com.example.mobdata.ui.theme.Divider
+import com.example.mobdata.ui.theme.Error
+import com.example.mobdata.ui.theme.Paper
+import com.example.mobdata.ui.theme.SoftSage
+import com.example.mobdata.ui.theme.Spruce
+import com.example.mobdata.ui.theme.Surface
+import com.example.mobdata.ui.theme.Teal
+import com.example.mobdata.ui.theme.TextSecondary
 import com.example.mobdata.viewmodel.HistorialViewModel
 
 // ==========================================
@@ -60,7 +68,8 @@ fun DetalleRegistroScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .background(Paper)
+            .padding(20.dp)
             .verticalScroll(rememberScrollState())
     ) {
         EncabezadoPantalla(titulo = "Detalle del registro", onVolver = onVolver)
@@ -70,84 +79,79 @@ fun DetalleRegistroScreen(
             todos == null -> Unit
             item == null -> Text(
                 "No se encontró el registro solicitado.",
-                color = MaterialTheme.colorScheme.error
+                color = Error
             )
             else -> {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Surface),
+                    border = BorderStroke(1.dp, Divider),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.size(44.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .background(SoftSage, RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = ambito.icono,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
+                                Icon(
+                                    imageVector = ambito.icono,
+                                    contentDescription = null,
+                                    tint = Teal,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
                             Text(
                                 ambito.etiqueta,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Spruce,
                                 modifier = Modifier.padding(start = 12.dp)
                             )
                         }
 
                         item.campos.forEach { (etiqueta, valor) ->
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
                             Text(
                                 etiqueta,
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.outline
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextSecondary
                             )
-                            Text(valor, fontSize = 16.sp)
+                            Text(valor, fontSize = 16.sp, color = Spruce)
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                         Text(
                             "Fecha",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.outline
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextSecondary
                         )
-                        Text(formatearFecha(item.fecha), fontSize = 16.sp)
+                        Text(formatearFecha(item.fecha), fontSize = 16.sp, color = Spruce)
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                         EtiquetaSincronizacion(item.sincronizado)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                Button(onClick = onEditar, modifier = Modifier.fillMaxWidth()) {
-                    Text("EDITAR")
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = { confirmarEliminar = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("ELIMINAR")
-                }
+                BotonPrincipal(texto = "Editar registro", onClick = onEditar)
+                Spacer(modifier = Modifier.height(10.dp))
+                BotonSecundario(
+                    texto = "Eliminar registro",
+                    onClick = { confirmarEliminar = true }
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         TextButton(onClick = onVolver, modifier = Modifier.fillMaxWidth()) {
-            Text("VOLVER AL HISTORIAL")
+            Text("VOLVER AL HISTORIAL", color = Teal, fontWeight = FontWeight.SemiBold)
         }
     }
 
@@ -155,19 +159,22 @@ fun DetalleRegistroScreen(
     if (confirmarEliminar) {
         AlertDialog(
             onDismissRequest = { confirmarEliminar = false },
-            title = { Text("Eliminar registro") },
-            text = { Text("Este registro se borrará del teléfono y no se puede recuperar.") },
+            shape = RoundedCornerShape(16.dp),
+            title = { Text("Eliminar registro", color = Spruce) },
+            text = { Text("Este registro se borrará del teléfono y no se puede recuperar.", color = TextSecondary) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmarEliminar = false
                     viewModel.eliminar(ambito, registroId)
                     onVolver()
                 }) {
-                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                    Text("Eliminar", color = Error, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmarEliminar = false }) { Text("Cancelar") }
+                TextButton(onClick = { confirmarEliminar = false }) {
+                    Text("Cancelar", color = Teal, fontWeight = FontWeight.SemiBold)
+                }
             }
         )
     }
