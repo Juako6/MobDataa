@@ -19,6 +19,7 @@ import com.example.mobdata.ui.detalle.DetalleRegistroScreen
 import com.example.mobdata.ui.home.DashboardScreen
 import com.example.mobdata.ui.login.LoginScreen
 import com.example.mobdata.ui.neurodesarrollo.FormularioNeurodesarrolloScreen
+import com.example.mobdata.util.SesionManager
 import com.example.mobdata.viewmodel.AnimoViewModel
 import com.example.mobdata.viewmodel.CatalogoViewModel
 import com.example.mobdata.viewmodel.DbtViewModel
@@ -47,12 +48,9 @@ object Rutas {
 @Composable
 fun AppNavigation() {
     val context = LocalContext.current
-    val sharedPref = remember {
-        context.getSharedPreferences("LemacPrefs", Context.MODE_PRIVATE)
-    }
-    val aliasGuardado = remember {
-        sharedPref.getString("alias", "") ?: ""
-    }
+    // Sesión recordada: alias con sesión vigente, o null si no hay o expiró.
+    // Se resuelve una sola vez al arrancar para decidir la pantalla inicial.
+    val aliasGuardado = remember { SesionManager.aliasActivo(context) ?: "" }
 
     val navController = rememberNavController()
 
@@ -69,8 +67,9 @@ fun AppNavigation() {
     ) {
         composable(Rutas.LOGIN) {
             LoginScreen(
-                onLoginSuccess = { alias ->
-                    sharedPref.edit().putString("alias", alias).apply()
+                onLoginSuccess = { usuario ->
+                    // Guarda la sesión (alias + id + expiración) para no volver a pedir credenciales
+                    SesionManager.iniciar(context, usuario.id, usuario.alias)
                     navController.navigate(Rutas.HOME) {
                         popUpTo(Rutas.LOGIN) { inclusive = true }
                     }
@@ -85,7 +84,7 @@ fun AppNavigation() {
                 .collectAsState()
 
             DashboardScreen(
-                alias = sharedPref.getString("alias", "") ?: "",
+                alias = SesionManager.aliasActivo(context) ?: "",
                 pestana = pestana,
                 onCambiarPestana = { entry.savedStateHandle[Rutas.CLAVE_PESTANA] = it },
                 historialViewModel = historialViewModel,
@@ -98,7 +97,7 @@ fun AppNavigation() {
                     navController.navigate(Rutas.detalle(ambito, registroId))
                 },
                 onLogout = {
-                    sharedPref.edit().clear().apply()
+                    SesionManager.cerrar(context)
                     navController.navigate(Rutas.LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
