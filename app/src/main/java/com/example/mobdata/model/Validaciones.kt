@@ -10,6 +10,8 @@ object Validaciones {
 
     const val ALIAS_MIN = 3
     const val ALIAS_MAX = 20
+    const val PASSWORD_MIN = 8
+    const val PASSWORD_MAX = 64
     const val TEXTO_CORTO_MIN = 3
     const val TEXTO_CORTO_MAX = 150
     const val TEXTO_LARGO_MAX = 200
@@ -69,6 +71,31 @@ object Validaciones {
             else -> null
         }
     }
+
+    // ---------- RF01: contraseña local ----------
+    // La contraseña NO pasa por la detección de datos personales ni de alias:
+    // es un secreto y se guarda hasheada, no como texto en claro.
+    fun validarPassword(password: String): String? = when {
+        password.isEmpty() -> "La contraseña es obligatoria."
+        password.length < PASSWORD_MIN ->
+            "La contraseña debe tener al menos $PASSWORD_MIN caracteres."
+        password.length > PASSWORD_MAX ->
+            "La contraseña no puede superar los $PASSWORD_MAX caracteres."
+        password.isBlank() -> "La contraseña no puede ser solo espacios."
+        else -> null
+    }
+
+    // Confirmación de contraseña en el registro (deben coincidir tal cual,
+    // por eso no se recorta el texto).
+    fun validarConfirmacionPassword(password: String, confirmacion: String): String? = when {
+        confirmacion.isEmpty() -> "Debes repetir la contraseña."
+        password != confirmacion -> "Las contraseñas no coinciden."
+        else -> null
+    }
+
+    // ---------- RF01: alias ya registrado ----------
+    fun validarAliasDisponible(alias: String, existe: Boolean): String? =
+        if (existe) "Ese alias ya está registrado. Elige otro o inicia sesión." else null
 
     // ---------- Estado de ánimo ----------
     fun validarCheckIn(emocion: String, intensidad: Int, nota: String = ""): String? = when {
