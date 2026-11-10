@@ -93,6 +93,14 @@ app/src/main/java/com/example/mobdata/
 2. **Aparición de registros nuevos** en el historial (`animateItem`).
 3. **Despliegue de lecturas/guías** en Recursos (`AnimatedVisibility`).
 
+## Interfaz y sistema de diseño
+- **Paleta verde-teal institucional** (`ui/theme/Color.kt` + `Theme.kt`): el color primario `#00695C` (verde-teal profundo) y el terciario azul `#1A5FB4` buscan transmitir confianza, calma y contexto de salud. Hay esquemas claro y oscuro completos.
+- **Color dinámico desactivado** a propósito: la identidad de la app no cambia según el fondo de pantalla del teléfono (Android 12+).
+- **Iconografía vectorial**: los emojis (😊 🧩 🛠️ ✅ 📱 ☁️ 📝 📊 📚) se reemplazaron por íconos de Material (`ImageVector`) en `Ambito.icono` y en el resto de la interfaz, con `contentDescription` donde aporta accesibilidad.
+- **Jerarquía tipográfica** definida en `ui/theme/Type.kt` (`titleLarge`, `titleMedium`, `labelLarge`, etc.) y usada de forma consistente en las pantallas.
+- **Barra de navegación inferior** con indicador en el color primario, encabezado con saludo al usuario e ícono de cerrar sesión, y tarjetas de módulo con ícono en círculo `primaryContainer`.
+
+
 ## Pruebas
 - **Unitarias (JVM):** `ValidacionesTest` (alias, contraseña, ánimo, neurodesarrollo, DBT, detección de datos personales), `SeguridadTest` (hash BCrypt: sal distinta por hash, verificación correcta/incorrecta) y `CredencialesTest` (alias duplicado, mensaje único de autenticación, vigencia de sesión). **46 casos en total.** Ejecutar: `./gradlew testDebugUnitTest`.
 - **Persistencia real (manual):** guardar → cerrar completamente la app → reabrir → los registros siguen en el historial.

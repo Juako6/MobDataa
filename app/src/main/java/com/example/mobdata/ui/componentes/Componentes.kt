@@ -18,11 +18,18 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -48,12 +55,23 @@ import com.example.mobdata.util.Notificaciones
 @Composable
 fun EncabezadoPantalla(titulo: String, onVolver: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TextButton(onClick = onVolver) { Text("← Volver") }
+        TextButton(onClick = onVolver) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Text("Volver")
+        }
     }
-    Text(titulo, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+    Text(
+        titulo,
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onBackground
+    )
 }
 
 // Selector de una opción entre varias (chips)
@@ -158,7 +176,20 @@ fun BannerExito(
             modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("✅ Registro guardado exitosamente")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        "Registro guardado exitosamente",
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
                 Row {
                     if (onVerHistorial != null) {
                         TextButton(onClick = onVerHistorial) { Text("VER EN HISTORIAL") }
@@ -184,11 +215,24 @@ fun BotonGuardar(modoEdicion: Boolean, onClick: () -> Unit) {
 // Estado de sincronización del registro (RNF01)
 @Composable
 fun EtiquetaSincronizacion(sincronizado: Boolean) {
-    Text(
-        if (sincronizado) "☁️ Sincronizado" else "📱 Guardado solo en el teléfono (pendiente de sincronizar)",
-        fontSize = 11.sp,
-        color = MaterialTheme.colorScheme.outline
-    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 4.dp)
+    ) {
+        Icon(
+            imageVector = if (sincronizado) Icons.Filled.CloudDone else Icons.Filled.Smartphone,
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.outline
+        )
+        Text(
+            if (sincronizado) "Sincronizado"
+            else "Guardado solo en el teléfono (pendiente de sincronizar)",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+    }
 }
 
 // Recurso nativo: notificación neutral al guardar. Solicita el permiso en runtime

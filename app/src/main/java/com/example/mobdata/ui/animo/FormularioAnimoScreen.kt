@@ -27,7 +27,7 @@ import com.example.mobdata.ui.componentes.SelectorOpciones
 import com.example.mobdata.ui.componentes.rememberNotificadorRegistro
 import com.example.mobdata.viewmodel.AnimoViewModel
 
-private val EMOCIONES = listOf("Calma 😊", "Tristeza 😔", "Ansiedad 😰", "Enojo 😠", "Alegría 😄")
+private val EMOCIONES = listOf("Calma", "Tristeza", "Ansiedad", "Enojo", "Alegría")
 
 // ==========================================
 // PANTALLA: Formulario de estado de ánimo (crear / editar)
