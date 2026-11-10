@@ -1,6 +1,8 @@
-# MobData 🧠📱
+# MobData
 
 Aplicación Android de **autorregistro anónimo** (estado de ánimo, neurodesarrollo y habilidades DBT) desarrollada con **Kotlin + Jetpack Compose**, arquitectura **MVVM** y persistencia local con **Room (SQLite)**. Funciona sin conexión: todo registro se guarda en el teléfono y sobrevive al cierre de la app. El acceso (RF01) es una **cuenta local** con alias ficticio y contraseña: las credenciales y los datos nunca salen del dispositivo (la contraseña se guarda solo como hash BCrypt).
+
+La interfaz usa un **sistema visual institucional de salud** (paleta verde profundo sobre papel crema, tarjetas blancas de borde suave, iconografía vectorial) descrito en [Interfaz y sistema de diseño](#interfaz-y-sistema-de-diseño).
 
 > ⚠️ **Alcance (RNF04):** prototipo académico. No emite diagnósticos, no recomienda tratamientos y no es un servicio de urgencias. Opera solo con datos ficticios (RNF03).
 
@@ -75,7 +77,11 @@ app/src/main/java/com/example/mobdata/
 ├── util/Seguridad.kt                  # Hash BCrypt de contraseñas (RF01)
 ├── util/SesionManager.kt              # Sesión recordada con expiración (RF01)
 └── ui/
-    ├── componentes/Componentes.kt     # Selectores, banner de éxito, notificador
+    ├── theme/                         # Sistema de diseño
+    │   ├── Color.kt                   # Paleta semántica (Spruce, Teal, Paper, estados)
+    │   ├── Theme.kt                   # Esquemas claro/oscuro → roles de Material 3
+    │   └── Type.kt                    # Escala tipográfica (28/20/16/15/12 sp)
+    ├── componentes/Componentes.kt     # Botones, campo de formulario, tarjeta, selectores, banner
     ├── login/ · home/ · animo/ · neurodesarrollo/ · dbt/ · historial/ · detalle/ · recursos/
 ```
 
@@ -110,6 +116,8 @@ Sistema visual institucional inspirado en el lenguaje de las apps de salud (refe
 - **Pantalla de acceso** con marca (logo + nombre), tarjeta blanca de credenciales y modos *Iniciar sesión* / *Crear cuenta* segmentados.
 - **Inicio** con saludo personalizado y círculo de iniciales, tarjeta destacada en verde profundo y tarjetas de módulo con ícono y flecha; **barra inferior** con indicador `SoftSage`.
 
+Las pantallas se organizan siempre igual: fondo `Paper`, tarjetas `Surface` con borde `Divider`, títulos en `Spruce` y metadatos en `TextSecondary`. Las pantallas consumen los colores por su nombre semántico, nunca por valor literal.
+
 
 ## Pruebas
 - **Unitarias (JVM):** `ValidacionesTest` (alias, contraseña, ánimo, neurodesarrollo, DBT, detección de datos personales), `SeguridadTest` (hash BCrypt: sal distinta por hash, verificación correcta/incorrecta) y `CredencialesTest` (alias duplicado, mensaje único de autenticación, vigencia de sesión). **46 casos en total.** Ejecutar: `./gradlew testDebugUnitTest`.
@@ -127,6 +135,14 @@ Sistema visual institucional inspirado en el lenguaje de las apps de salud (refe
 2. Sincronizar Gradle (KSP + Room).
 3. *Run 'app'* en emulador o dispositivo.
 > Si Room falla por esquema tras cambiar de rama, desinstala la app del emulador una vez.
+
+Verificación rápida desde la terminal:
+
+```bash
+./gradlew compileDebugKotlin      # compila las pantallas
+./gradlew testDebugUnitTest       # 46 pruebas unitarias
+./gradlew assembleDebug           # genera app/build/outputs/apk/debug/app-debug.apk
+```
 
 ## Equipo y ramas
 - Rama `BenjaRama` — Benjamin Leiton
