@@ -48,10 +48,16 @@ data class EstadoFormularioDbt(
     val modoEdicion: Boolean get() = idEdicion != 0L
 }
 
-// ---- Login ----
+// ---- Login / Registro (RF01) ----
+// El modo activo lo decide `esRegistro`. En ambos modos se usan
+// los mismos campos; la contraseña solo existe en memoria y nunca se persiste en claro.
 data class EstadoLogin(
     val alias: String = "",
-    val mensajeError: String? = null
+    val password: String = "",
+    val confirmacionPassword: String = "",
+    val esRegistro: Boolean = false,
+    val mensajeError: String? = null,
+    val cargando: Boolean = false
 )
 
 // Opciones de episodio del módulo Neurodesarrollo
