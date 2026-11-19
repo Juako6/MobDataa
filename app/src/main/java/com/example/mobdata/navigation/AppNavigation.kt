@@ -1,6 +1,5 @@
 package com.example.mobdata.navigation
 
-import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -19,25 +18,22 @@ import com.example.mobdata.ui.detalle.DetalleRegistroScreen
 import com.example.mobdata.ui.home.DashboardScreen
 import com.example.mobdata.ui.login.LoginScreen
 import com.example.mobdata.ui.neurodesarrollo.FormularioNeurodesarrolloScreen
+import com.example.mobdata.ui.usuarios.UsuariosApiScreen
+import com.example.mobdata.util.SesionManager
 import com.example.mobdata.viewmodel.AnimoViewModel
 import com.example.mobdata.viewmodel.CatalogoViewModel
 import com.example.mobdata.viewmodel.DbtViewModel
 import com.example.mobdata.viewmodel.HistorialViewModel
 import com.example.mobdata.viewmodel.NeurodesarrolloViewModel
+import com.example.mobdata.viewmodel.UsuariosApiViewModel
 
-// ==========================================
-// NAVEGACIÓN con NavController + NavHost
-// LOGIN -> HOME (Inicio / Historial / Recursos)
-//            ├─ FORMULARIO/{ambito}/{registroId}  (0 = nuevo, >0 = editar)
-//            └─ DETALLE/{ambito}/{registroId}     (editar / eliminar)
-// ==========================================
 object Rutas {
     const val LOGIN = "login"
     const val HOME = "home"
     const val FORMULARIO = "formulario/{ambito}/{registroId}"
     const val DETALLE = "detalle/{ambito}/{registroId}"
+    const val USUARIOS_API = "usuarios_api"
 
-    // Clave en el SavedStateHandle de HOME para recordar la pestaña activa
     const val CLAVE_PESTANA = "pestana"
 
     fun formulario(ambito: Ambito, registroId: Long = 0L) = "formulario/${ambito.name}/$registroId"
@@ -47,16 +43,10 @@ object Rutas {
 @Composable
 fun AppNavigation() {
     val context = LocalContext.current
-    val sharedPref = remember {
-        context.getSharedPreferences("LemacPrefs", Context.MODE_PRIVATE)
-    }
-    val aliasGuardado = remember {
-        sharedPref.getString("alias", "") ?: ""
-    }
+    val aliasGuardado = remember { SesionManager.aliasActivo(context) ?: "" }
 
     val navController = rememberNavController()
 
-    // ViewModels compartidos entre pantallas (ámbito de la Activity)
     val animoViewModel: AnimoViewModel = viewModel()
     val neuroViewModel: NeurodesarrolloViewModel = viewModel()
     val dbtViewModel: DbtViewModel = viewModel()
@@ -69,8 +59,8 @@ fun AppNavigation() {
     ) {
         composable(Rutas.LOGIN) {
             LoginScreen(
-                onLoginSuccess = { alias ->
-                    sharedPref.edit().putString("alias", alias).apply()
+                onLoginSuccess = { usuario ->
+                    SesionManager.iniciar(context, usuario.id, usuario.alias)
                     navController.navigate(Rutas.HOME) {
                         popUpTo(Rutas.LOGIN) { inclusive = true }
                     }
@@ -79,13 +69,12 @@ fun AppNavigation() {
         }
 
         composable(Rutas.HOME) { entry ->
-            // La pestaña activa se guarda en la entrada de navegación
             val pestana by entry.savedStateHandle
                 .getStateFlow(Rutas.CLAVE_PESTANA, 0)
                 .collectAsState()
 
             DashboardScreen(
-                alias = sharedPref.getString("alias", "") ?: "",
+                alias = SesionManager.aliasActivo(context) ?: "",
                 pestana = pestana,
                 onCambiarPestana = { entry.savedStateHandle[Rutas.CLAVE_PESTANA] = it },
                 historialViewModel = historialViewModel,
@@ -93,12 +82,14 @@ fun AppNavigation() {
                 onNuevoRegistro = { ambito ->
                     navController.navigate(Rutas.formulario(ambito))
                 },
-                // PASO DE INFORMACIÓN: ámbito e id del registro viajan en la ruta
                 onVerDetalle = { ambito, registroId ->
                     navController.navigate(Rutas.detalle(ambito, registroId))
                 },
+                onVerUsuariosApi = {
+                    navController.navigate(Rutas.USUARIOS_API)
+                },
                 onLogout = {
-                    sharedPref.edit().clear().apply()
+                    SesionManager.cerrar(context)
                     navController.navigate(Rutas.LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -116,7 +107,6 @@ fun AppNavigation() {
             val ambito = Ambito.desdeNombre(entry.arguments?.getString("ambito")) ?: Ambito.ANIMO
             val registroId = entry.arguments?.getLong("registroId") ?: 0L
             val volver: () -> Unit = { navController.popBackStack() }
-            // "Ver en historial": vuelve a HOME dejando seleccionada la pestaña Historial
             val verHistorial: () -> Unit = {
                 navController.getBackStackEntry(Rutas.HOME)
                     .savedStateHandle[Rutas.CLAVE_PESTANA] = 1
@@ -146,6 +136,14 @@ fun AppNavigation() {
                 viewModel = historialViewModel,
                 onVolver = { navController.popBackStack() },
                 onEditar = { navController.navigate(Rutas.formulario(ambito, registroId)) }
+            )
+        }
+
+        composable(Rutas.USUARIOS_API) {
+            val usuariosApiViewModel: UsuariosApiViewModel = viewModel()
+            UsuariosApiScreen(
+                viewModel = usuariosApiViewModel,
+                onVolver = { navController.popBackStack() }
             )
         }
     }
