@@ -20,7 +20,7 @@ object RetrofitClient {
     // IMPORTANTE: debe terminar en '/' porque Retrofit concatena rutas relativas.
     // Sustituye esta dirección por la de tu backend real (local con emulator:
     //   http://10.0.2.2:8080/v1/  apunta al localhost de tu máquina).
-    private const val BASE_URL = "https://api.mobdata.example/v1/"
+    private const val BASE_URL = "https://api.npoint.io/"
 
     // Logger de red: vuelca cada petición y respuesta en Logcat (tag "OkHttp").
     // Nivel BODY = cabeceras + cuerpo completo. En producción usa NONE o BASIC.
