@@ -32,35 +32,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mobdata.data.remoto.UsuarioApi
 import com.example.mobdata.model.EstadoListaUsuarios
-import com.example.mobdata.ui.componentes.EncabezadoPantalla
 import com.example.mobdata.ui.componentes.BotonPrincipal
+import com.example.mobdata.ui.componentes.EncabezadoPantalla
 import com.example.mobdata.ui.theme.Divider
 import com.example.mobdata.ui.theme.Error
 import com.example.mobdata.ui.theme.ErrorBg
+import com.example.mobdata.ui.theme.Paper
 import com.example.mobdata.ui.theme.SoftSage
 import com.example.mobdata.ui.theme.Spruce
 import com.example.mobdata.ui.theme.Surface
 import com.example.mobdata.ui.theme.Teal
 import com.example.mobdata.ui.theme.TextSecondary
 import com.example.mobdata.viewmodel.UsuariosApiViewModel
-import com.example.mobdata.ui.componentes.EncabezadoPantalla
-import com.example.mobdata.ui.theme.Paper
-import com.example.mobdata.ui.componentes.EncabezadoPantalla
-import com.example.mobdata.ui.theme.Paper
 
-// ==========================================
-// PANTALLA: Lista de usuarios obtenida desde la API REST con Retrofit.
-// Reacciona a TRES estados del ViewModel a través de un único `when`:
-//   Cargando  -> spinner centrado
-//   Exito     -> LazyColumn con una tarjeta por usuario (o vacío)
-//   Error     -> mensaje + botón Reintentar
-//
-// Flujo de arquitectura:
-//   UsuariosApiScreen -> UsuariosApiViewModel -> UsuariosRemotosRepository
-//                     -> UsuariosApiService -> RetrofitClient -> API REST
-// ==========================================
 @Composable
 fun UsuariosApiScreen(
     viewModel: UsuariosApiViewModel = viewModel(),
@@ -110,78 +97,25 @@ fun UsuariosApiScreen(
     }
 }
 
-// ---------- Estado 1: CARGANDO ----------
 @Composable
-private fun EstadoCargando() {
+private fun VistaError(mensaje: String, onReintentar: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CircularProgressIndicator(
-                color = Teal,
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(40.dp)
+            Icon(
+                imageVector = Icons.Filled.CloudOff,
+                contentDescription = null,
+                tint = Error,
+                modifier = Modifier.size(48.dp)
             )
-            Text(
-                "Cargando usuarios…",
-                color = TextSecondary,
-                fontSize = 14.sp
-            )
-        }
-    }
-}
-
-// ---------- Estado 2a: ÉXITO con datos ----------
-@Composable
-private fun ListaUsuarios(usuarios: List<UsuarioApi>) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(usuarios, key = { it.id }) { usuario ->
-            TarjetaUsuario(usuario)
-        }
-    }
-}
-
-// ---------- Estado 2b: ÉXITO sin datos ----------
-@Composable
-private fun EstadoVacio() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            "El servidor devolvió una lista vacía.",
-            color = TextSecondary
-        )
-    }
-}
-
-// ---------- Estado 3: ERROR ----------
-@Composable
-private fun EstadoError(
-    mensaje: String,
-    onReintentar: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(24.dp)
-        ) {Icon(
-            imageVector = Icons.Filled.CloudOff,
-            contentDescription = null,
-            tint = Error,
-            modifier = Modifier.size(48.dp)
-        )
             Text(
                 mensaje,
                 color = Error,
@@ -200,7 +134,6 @@ private fun EstadoError(
     }
 }
 
-// ---------- Tarjeta de un usuario ----------
 @Composable
 private fun TarjetaUsuario(usuario: UsuarioApi) {
     Card(
@@ -214,7 +147,6 @@ private fun TarjetaUsuario(usuario: UsuarioApi) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar circular con inicial del nombre
             Box(
                 modifier = Modifier
                     .size(44.dp)
@@ -229,7 +161,11 @@ private fun TarjetaUsuario(usuario: UsuarioApi) {
                 )
             }
 
-            Column(modifier = Modifier.padding(start = 14.dp).fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .padding(start = 14.dp)
+                    .fillMaxWidth()
+            ) {
                 Text(
                     usuario.nombre,
                     style = MaterialTheme.typography.titleMedium,
