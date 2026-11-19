@@ -49,6 +49,7 @@ import com.example.mobdata.ui.componentes.EncabezadoPantalla
 import com.example.mobdata.ui.theme.Paper
 import com.example.mobdata.ui.componentes.EncabezadoPantalla
 import com.example.mobdata.ui.theme.Paper
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 // ==========================================
 // PANTALLA: Lista de usuarios obtenida desde la API REST con Retrofit.
@@ -101,7 +102,7 @@ fun UsuariosApiScreen(
             }
 
             is EstadoListaUsuarios.Error -> {
-                VistaError(
+                EstadoError(
                     mensaje = actual.mensaje,
                     onReintentar = { viewModel.cargarUsuarios() }
                 )

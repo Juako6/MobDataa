@@ -75,14 +75,23 @@ object Validaciones {
     // ---------- RF01: contraseña local ----------
     // La contraseña NO pasa por la detección de datos personales ni de alias:
     // es un secreto y se guarda hasheada, no como texto en claro.
-    fun validarPassword(password: String): String? = when {
-        password.isEmpty() -> "La contraseña es obligatoria."
-        password.length < PASSWORD_MIN ->
-            "La contraseña debe tener al menos $PASSWORD_MIN caracteres."
-        password.length > PASSWORD_MAX ->
-            "La contraseña no puede superar los $PASSWORD_MAX caracteres."
-        password.isBlank() -> "La contraseña no puede ser solo espacios."
-        else -> null
+    fun validarPassword(password: String): String? {
+        // 1) Caso "todo en blanco" (incluye "" y "   "). Se evalúa PRIMERO.
+        if (password.isBlank()) {
+            return if (password.isEmpty()) {
+                "La contraseña es obligatoria."
+            } else {
+                "La contraseña no puede ser solo espacios."
+            }
+        }
+        // 2) Longitud mínima y máxima sobre el contenido real.
+        return when {
+            password.length < PASSWORD_MIN ->
+                "La contraseña debe tener al menos $PASSWORD_MIN caracteres."
+            password.length > PASSWORD_MAX ->
+                "La contraseña no puede superar los $PASSWORD_MAX caracteres."
+            else -> null
+        }
     }
 
     // Confirmación de contraseña en el registro (deben coincidir tal cual,
