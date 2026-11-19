@@ -53,6 +53,7 @@ import com.example.mobdata.ui.theme.Teal
 import com.example.mobdata.ui.theme.TextSecondary
 import com.example.mobdata.viewmodel.CatalogoViewModel
 import com.example.mobdata.viewmodel.HistorialViewModel
+import androidx.compose.material.icons.filled.Person
 
 // ==========================================
 // PANTALLA: Dashboard con pestañas Inicio / Historial / Recursos.
@@ -67,6 +68,7 @@ fun DashboardScreen(
     catalogoViewModel: CatalogoViewModel,
     onNuevoRegistro: (Ambito) -> Unit,
     onVerDetalle: (Ambito, Long) -> Unit,
+    onVerUsuariosApi: () -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -96,13 +98,23 @@ fun DashboardScreen(
                         Text("Autorregistro", color = TextSecondary, fontSize = 12.sp)
                     }
                 }
-                IconButton(onClick = onLogout) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = "Cerrar sesión",
-                        tint = Teal
-                    )
+                Row {
+                    IconButton(onClick = onVerUsuariosApi) {
+                        Icon(
+                            Icons.Filled.Person,
+                            contentDescription = "Equipo profesional (API)",
+                            tint = Teal
+                        )
+                    }
+                    IconButton(onClick = onLogout) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Cerrar sesión",
+                            tint = Teal
+                        )
+                    }
                 }
+
             }
         },
         bottomBar = {
