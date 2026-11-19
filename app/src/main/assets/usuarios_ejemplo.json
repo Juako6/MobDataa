@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "alias": "dra.lopez",
+      "nombre": "Dra. María López",
+      "email": "maria.lopez@mobdata.health",
+      "rol": "psicologa",
+      "activo": true,
+      "fechaRegistro": "2025-09-12T10:24:00Z"
+    },
+    {
+      "id": 2,
+      "alias": "lic.ruiz",
+      "nombre": "Lic. Carlos Ruiz",
+      "email": "carlos.ruiz@mobdata.health",
+      "rol": "terapeuta",
+      "activo": true,
+      "fechaRegistro": "2025-09-20T15:05:00Z"
+    },
+    {
+      "id": 3,
+      "alias": "coord.silva",
+      "nombre": "Andrea Silva",
+      "email": "andrea.silva@mobdata.health",
+      "rol": "coordinadora",
+      "activo": false,
+      "fechaRegistro": "2025-10-03T08:42:00Z"
+    }
+  ],
+  "total": 3
+}
