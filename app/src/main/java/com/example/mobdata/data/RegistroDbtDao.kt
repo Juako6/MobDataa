@@ -26,6 +26,12 @@ interface RegistroDbtDao {
     @Delete
     suspend fun eliminar(registro: RegistroDbt)
 
+    @Query("SELECT * FROM registros_dbt WHERE sincronizado = 0")
+    suspend fun obtenerPendientes(): List<RegistroDbt>
+
+    @Query("UPDATE registros_dbt SET sincronizado = 1 WHERE id = :id")
+    suspend fun marcarSincronizado(id: Long)
+
     @Query("DELETE FROM registros_dbt WHERE id = :id")
     suspend fun eliminarPorId(id: Long)
 }

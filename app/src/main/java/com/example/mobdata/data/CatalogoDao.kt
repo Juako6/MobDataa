@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.Flow
 interface CatalogoDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertar(contenido: ContenidoCatalogo): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarTodos(contenidos: List<ContenidoCatalogo>)
 
     @Query("SELECT * FROM catalogo_contenidos ORDER BY tipo, categoria, titulo")

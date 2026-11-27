@@ -26,6 +26,12 @@ interface RegistroNeurodesarrolloDao {
     @Delete
     suspend fun eliminar(registro: RegistroNeurodesarrollo)
 
+    @Query("SELECT * FROM registros_neurodesarrollo WHERE sincronizado = 0")
+    suspend fun obtenerPendientes(): List<RegistroNeurodesarrollo>
+
+    @Query("UPDATE registros_neurodesarrollo SET sincronizado = 1 WHERE id = :id")
+    suspend fun marcarSincronizado(id: Long)
+
     @Query("DELETE FROM registros_neurodesarrollo WHERE id = :id")
     suspend fun eliminarPorId(id: Long)
 }

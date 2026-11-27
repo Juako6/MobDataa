@@ -16,6 +16,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+sealed interface EstadoSync {
+    data object Idle : EstadoSync
+    data object Sincronizando : EstadoSync
+    data class Exito(val cantidad: Int) : EstadoSync
+    data class Error(val mensaje: String) : EstadoSync
+}
+
 // ==========================================
 // VIEWMODEL (RF04): historial unificado, filtro por ámbito y eliminación.
 // Los listados son null mientras Room no ha emitido la primera lectura.
@@ -26,6 +33,9 @@ class HistorialViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _filtro = MutableStateFlow<Ambito?>(null)
     val filtro: StateFlow<Ambito?> = _filtro.asStateFlow()
+
+    private val _estadoSync = MutableStateFlow<EstadoSync>(EstadoSync.Idle)
+    val estadoSync: StateFlow<EstadoSync> = _estadoSync.asStateFlow()
 
     // Todos los registros de todos los ámbitos, del más reciente al más antiguo
     val todos: StateFlow<List<ItemHistorial>?> = combine(
@@ -64,6 +74,20 @@ class HistorialViewModel(app: Application) : AndroidViewModel(app) {
                 Ambito.NEURODESARROLLO -> repositorio.eliminarNeurodesarrollo(id)
                 Ambito.DBT -> repositorio.eliminarDbt(id)
             }
+        }
+    }
+
+    fun sincronizarPendientes() {
+        if (_estadoSync.value is EstadoSync.Sincronizando) return
+        _estadoSync.value = EstadoSync.Sincronizando
+        viewModelScope.launch {
+            repositorio.sincronizarPendientes()
+                .onSuccess { cantidad ->
+                    _estadoSync.value = EstadoSync.Exito(cantidad)
+                }
+                .onFailure {
+                    _estadoSync.value = EstadoSync.Error("Sin conexión o error de red. Tus datos siguen seguros en el teléfono.")
+                }
         }
     }
 }

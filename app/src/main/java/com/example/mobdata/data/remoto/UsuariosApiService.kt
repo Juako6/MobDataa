@@ -14,6 +14,13 @@ import retrofit2.http.GET
 interface UsuariosApiService {
 
     // Lista todos los usuarios disponibles en el servidor.
-    @GET("usuarios")
+
+    //pruebas
+    //https://www.npoint.io/docs/c1480ce944701fd679fc
+
+    @GET("c1480ce944701fd679fc")
     suspend fun listarUsuarios(): RespuestaUsuariosApi
+
+    //@GET("usuarios")
+    //suspend fun listarUsuarios(): RespuestaUsuariosApi
 }
