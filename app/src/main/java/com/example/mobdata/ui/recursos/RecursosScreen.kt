@@ -63,7 +63,7 @@ import com.example.mobdata.viewmodel.CatalogoViewModel
 // Guías de habilidades DBT y lecturas psicoeducativas leídas desde Room.
 // ==========================================
 @Composable
-fun RecursosScreen(viewModel: CatalogoViewModel) {
+fun RecursosScreen(viewModel: CatalogoViewModel, esAdmin: Boolean = false) {
     val contenidos by viewModel.contenidos.collectAsState()
     var modoAdmin by remember { mutableStateOf(false) }
     var mostrarDialogoCrear by remember { mutableStateOf(false) }
@@ -88,16 +88,18 @@ fun RecursosScreen(viewModel: CatalogoViewModel) {
                     color = TextSecondary
                 )
             }
-            TextButton(onClick = { modoAdmin = !modoAdmin }) {
-                Text(
-                    if (modoAdmin) "Listo" else "Administrar",
-                    color = Teal,
-                    fontWeight = FontWeight.SemiBold
-                )
+            if (esAdmin) {
+                TextButton(onClick = { modoAdmin = !modoAdmin }) {
+                    Text(
+                        if (modoAdmin) "Listo" else "Administrar",
+                        color = Teal,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
 
-        if (modoAdmin) {
+        if (esAdmin && modoAdmin) {
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(
                 onClick = { mostrarDialogoCrear = true },
