@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 
 // ==========================================
 // VIEWMODEL: login y registro con alias + contraseña local (RF01).
@@ -56,6 +57,15 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
     fun enviar(onExito: (Usuario) -> Unit) {
         val e = _estado.value
         if (e.cargando) return
+
+        // 0) Verificar si es cuenta de personal/administrador desde assets/cuentas_personal.json
+        if (!e.esRegistro) {
+            val cuentaPersonal = autenticarCuentaPersonal(e.alias, e.password)
+            if (cuentaPersonal != null) {
+                onExito(cuentaPersonal)
+                return
+            }
+        }
 
         // 1) Validaciones puras comunes
         val errorAlias = Validaciones.validarAlias(e.alias)
@@ -113,5 +123,29 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun mostrarError(mensaje: String) {
         _estado.value = _estado.value.copy(mensajeError = mensaje, cargando = false)
+    }
+
+    private fun autenticarCuentaPersonal(correoIngresado: String, passwordIngresada: String): Usuario? {
+        val correoNormalizado = correoIngresado.trim().lowercase().let {
+            if (it == "tombernal@mobdata.healt") "tombernal@mobdata.health" else it
+        }
+        return try {
+            val jsonText = getApplication<Application>().assets
+                .open("cuentas_personal.json")
+                .bufferedReader()
+                .use { it.readText() }
+            val array = JSONArray(jsonText)
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val correo = obj.getString("correo").trim().lowercase()
+                val pass = obj.getString("password")
+                if (correo == correoNormalizado && pass == passwordIngresada) {
+                    return Usuario(id = 0L, alias = correo, passwordHash = "")
+                }
+            }
+            null
+        } catch (_: Exception) {
+            null
+        }
     }
 }

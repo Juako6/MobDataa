@@ -1,0 +1,32 @@
+[
+  {
+    "nombre": "Tomas Bernal",
+    "correo": "tombernal@mobdata.health",
+    "password": "clave123",
+    "rol": "ADMIN"
+  },
+  {
+    "nombre": "Dra. María López",
+    "correo": "maria.lopez@mobdata.health",
+    "password": "clave123",
+    "rol": "TRABAJADOR"
+  },
+  {
+    "nombre": "Lic. Carlos Ruiz",
+    "correo": "carlos.ruiz@mobdata.health",
+    "password": "clave123",
+    "rol": "TRABAJADOR"
+  },
+  {
+    "nombre": "Andrea Silva",
+    "correo": "andrea.silva@mobdata.health",
+    "password": "clave123",
+    "rol": "TRABAJADOR"
+  },
+  {
+    "nombre": "Carlos Acuña",
+    "correo": "acunac@mobdata.health",
+    "password": "clave123",
+    "rol": "TRABAJADOR"
+  }
+]

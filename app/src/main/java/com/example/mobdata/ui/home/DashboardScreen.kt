@@ -153,7 +153,13 @@ fun DashboardScreen(
             when (pestana) {
                 0 -> InicioContent(alias = alias, onNuevoRegistro = onNuevoRegistro)
                 1 -> HistorialScreen(historialViewModel, onVerDetalle)
-                else -> RecursosScreen(catalogoViewModel)
+                else -> {
+                    val esAdmin = alias.trim().lowercase() in setOf(
+                        "tombernal@mobdata.health",
+                        "tombernal@mobdata.healt"
+                    )
+                    RecursosScreen(catalogoViewModel, esAdmin = esAdmin)
+                }
             }
         }
     }
