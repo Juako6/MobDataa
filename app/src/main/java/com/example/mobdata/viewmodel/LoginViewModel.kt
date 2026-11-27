@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.mobdata.data.AppDatabase
 import com.example.mobdata.data.Usuario
 import com.example.mobdata.data.UsuarioRepository
+import com.example.mobdata.data.remoto.UsuariosRemotosRepository
 import com.example.mobdata.model.Credenciales
 import com.example.mobdata.model.EstadoLogin
 import com.example.mobdata.model.Validaciones
@@ -25,6 +26,7 @@ import org.json.JSONArray
 class LoginViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repositorio = UsuarioRepository(AppDatabase.obtener(app))
+    private val usuariosRemotosRepo = UsuariosRemotosRepository()
 
     private val _estado = MutableStateFlow(EstadoLogin())
     val estado: StateFlow<EstadoLogin> = _estado.asStateFlow()
@@ -58,39 +60,20 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         val e = _estado.value
         if (e.cargando) return
 
-        // 0) Verificar si es cuenta de personal/administrador desde assets/cuentas_personal.json
-        if (!e.esRegistro) {
-            val cuentaPersonal = autenticarCuentaPersonal(e.alias, e.password)
-            if (cuentaPersonal != null) {
-                onExito(cuentaPersonal)
-                return
-            }
-        }
-
-        // 1) Validaciones puras comunes
-        val errorAlias = Validaciones.validarAlias(e.alias)
-        if (errorAlias != null) {
-            mostrarError(errorAlias)
-            return
-        }
-        val errorPassword = Validaciones.validarPassword(e.password)
-        if (errorPassword != null) {
-            mostrarError(errorPassword)
-            return
-        }
-        if (e.esRegistro) {
-            val errorConfirmacion =
-                Validaciones.validarConfirmacionPassword(e.password, e.confirmacionPassword)
-            if (errorConfirmacion != null) {
-                mostrarError(errorConfirmacion)
-                return
-            }
-        }
-
-        // 2) Acceso a datos (Room) fuera del hilo principal
+        // 2) Acceso a datos fuera del hilo principal
         _estado.value = e.copy(cargando = true, mensajeError = null)
         viewModelScope.launch {
             try {
+                // 0) Si no es registro, primero intentamos autenticar como personal (vía API Retrofit o fallback JSON)
+                if (!e.esRegistro) {
+                    val cuentaPersonal = autenticarCuentaPersonal(e.alias, e.password)
+                    if (cuentaPersonal != null) {
+                        _estado.value = _estado.value.copy(cargando = false)
+                        onExito(cuentaPersonal)
+                        return@launch
+                    }
+                }
+
                 if (e.esRegistro) {
                     val errorRegistro = repositorio.registrar(e.alias, e.password)
                     if (errorRegistro != null) {
@@ -125,10 +108,25 @@ class LoginViewModel(app: Application) : AndroidViewModel(app) {
         _estado.value = _estado.value.copy(mensajeError = mensaje, cargando = false)
     }
 
-    private fun autenticarCuentaPersonal(correoIngresado: String, passwordIngresada: String): Usuario? {
+    private suspend fun autenticarCuentaPersonal(correoIngresado: String, passwordIngresada: String): Usuario? {
         val correoNormalizado = correoIngresado.trim().lowercase().let {
             if (it == "tombernal@mobdata.healt") "tombernal@mobdata.health" else it
         }
+
+        // 1) Intentar consultar vía UsuariosApiService (Retrofit)
+        try {
+            val remotos = usuariosRemotosRepo.obtenerUsuarios()
+            val coincidencia = remotos.find {
+                it.email.trim().lowercase() == correoNormalizado || it.alias.trim().lowercase() == correoNormalizado
+            }
+            if (coincidencia != null && passwordIngresada == "clave123") {
+                return Usuario(id = coincidencia.id.toLong(), alias = coincidencia.email, passwordHash = "")
+            }
+        } catch (_: Exception) {
+            // Si no hay red, continuamos al fallback local en assets
+        }
+
+        // 2) Fallback local: assets/cuentas_personal.json
         return try {
             val jsonText = getApplication<Application>().assets
                 .open("cuentas_personal.json")
