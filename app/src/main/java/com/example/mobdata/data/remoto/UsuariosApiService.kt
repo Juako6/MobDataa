@@ -7,9 +7,11 @@ import retrofit2.http.GET
 // Cada método es `suspend` para poder llamarlo desde una corrutina
 // (viewModelScope) sin bloquear el hilo principal.
 //
-// La ruta de @GET es RELATIVA ("usuarios"); se concatena con la baseUrl de
-// RetrofitClient, de modo que la URL final es:
-//   https://api.mobdata.example/v1/usuarios
+// La ruta de @GET es RELATIVA ("c1480ce944701fd679fc"); se concatena con la baseUrl de
+// RetrofitClient (https://api.npoint.io/), de modo que la URL real es:
+//   https://api.npoint.io/c1480ce944701fd679fc
+// Panel de administración de npoint:
+//   https://www.npoint.io/docs/c1480ce944701fd679fc
 // ==========================================
 interface UsuariosApiService {
 
