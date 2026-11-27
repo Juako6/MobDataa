@@ -17,12 +17,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,6 +46,7 @@ import com.example.mobdata.ui.theme.Spruce
 import com.example.mobdata.ui.theme.Surface
 import com.example.mobdata.ui.theme.Teal
 import com.example.mobdata.ui.theme.TextSecondary
+import com.example.mobdata.viewmodel.EstadoSync
 import com.example.mobdata.viewmodel.HistorialViewModel
 
 // ==========================================
@@ -56,18 +61,78 @@ fun HistorialScreen(
 ) {
     val registros by viewModel.registros.collectAsState()
     val filtro by viewModel.filtro.collectAsState()
+    val estadoSync by viewModel.estadoSync.collectAsState()
+    val pendientes = registros?.count { !it.sincronizado } ?: 0
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            "Historial de registros",
-            style = MaterialTheme.typography.headlineMedium,
-            color = Spruce
-        )
-        Text(
-            "Todos tus registros guardados en este teléfono.",
-            fontSize = 13.sp,
-            color = TextSecondary
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Historial de registros",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Spruce
+                )
+                Text(
+                    "Todos tus registros guardados en este teléfono.",
+                    fontSize = 13.sp,
+                    color = TextSecondary
+                )
+            }
+            if (pendientes > 0 || estadoSync is EstadoSync.Sincronizando) {
+                OutlinedButton(
+                    onClick = { viewModel.sincronizarPendientes() },
+                    enabled = estadoSync !is EstadoSync.Sincronizando,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Teal)
+                ) {
+                    if (estadoSync is EstadoSync.Sincronizando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = Teal
+                        )
+                    } else {
+                        Icon(
+                            Icons.Filled.CloudUpload,
+                            contentDescription = "Sincronizar",
+                            tint = Teal,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Text(
+                        if (estadoSync is EstadoSync.Sincronizando) "Enviando..." else "Sincronizar ($pendientes)",
+                        color = Teal,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
+            }
+        }
+        when (val sync = estadoSync) {
+            is EstadoSync.Exito -> {
+                Text(
+                    if (sync.cantidad > 0) "${sync.cantidad} registro(s) sincronizado(s) correctamente."
+                    else "Todo está sincronizado.",
+                    fontSize = 12.sp,
+                    color = Teal,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            is EstadoSync.Error -> {
+                Text(
+                    sync.mensaje,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            else -> Unit
+        }
         Spacer(modifier = Modifier.height(10.dp))
 
         // Filtro por ámbito

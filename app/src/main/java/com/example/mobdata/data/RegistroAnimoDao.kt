@@ -31,6 +31,12 @@ interface RegistroAnimoDao {
     @Delete
     suspend fun eliminar(registro: RegistroAnimo)
 
+    @Query("SELECT * FROM registros_animo WHERE sincronizado = 0")
+    suspend fun obtenerPendientes(): List<RegistroAnimo>
+
+    @Query("UPDATE registros_animo SET sincronizado = 1 WHERE id = :id")
+    suspend fun marcarSincronizado(id: Long)
+
     @Query("DELETE FROM registros_animo WHERE id = :id")
     suspend fun eliminarPorId(id: Long)
 }

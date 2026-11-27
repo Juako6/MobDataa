@@ -28,4 +28,48 @@ class CatalogoViewModel(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch { repositorio.asegurarCatalogoInicial() }
     }
+
+    fun agregarContenido(
+        tipo: String,
+        categoria: String,
+        titulo: String,
+        descripcion: String
+    ) {
+        val tituloLimpio = titulo.trim()
+        val descLimpia = descripcion.trim()
+        val catLimpia = categoria.trim().ifEmpty { "General" }
+        if (tituloLimpio.isEmpty() || descLimpia.isEmpty()) return
+
+        viewModelScope.launch {
+            val nuevoId = (contenidos.value.maxOfOrNull { it.id } ?: 100L) + 1L
+            repositorio.insertarContenido(
+                ContenidoCatalogo(
+                    id = nuevoId,
+                    tipo = tipo,
+                    categoria = catLimpia,
+                    titulo = tituloLimpio,
+                    descripcion = descLimpia
+                )
+            )
+        }
+    }
+
+    fun actualizarContenido(contenido: ContenidoCatalogo) {
+        if (contenido.titulo.isBlank() || contenido.descripcion.isBlank()) return
+        viewModelScope.launch {
+            repositorio.actualizarContenido(
+                contenido.copy(
+                    titulo = contenido.titulo.trim(),
+                    categoria = contenido.categoria.trim().ifEmpty { "General" },
+                    descripcion = contenido.descripcion.trim()
+                )
+            )
+        }
+    }
+
+    fun eliminarContenido(contenido: ContenidoCatalogo) {
+        viewModelScope.launch {
+            repositorio.eliminarContenido(contenido)
+        }
+    }
 }

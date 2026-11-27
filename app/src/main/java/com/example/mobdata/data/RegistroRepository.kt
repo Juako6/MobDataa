@@ -1,5 +1,7 @@
 package com.example.mobdata.data
 
+import com.example.mobdata.data.remoto.RegistroSyncPayload
+import com.example.mobdata.data.remoto.RetrofitClient
 import kotlinx.coroutines.flow.Flow
 
 // ==========================================
@@ -49,5 +51,70 @@ class RegistroRepository(db: AppDatabase) {
         if (catalogoDao.contar() == 0) {
             catalogoDao.insertarTodos(CatalogoSemilla.contenidos)
         }
+    }
+
+    suspend fun insertarContenido(contenido: ContenidoCatalogo): Long =
+        catalogoDao.insertar(contenido)
+
+    suspend fun actualizarContenido(contenido: ContenidoCatalogo) =
+        catalogoDao.actualizar(contenido)
+
+    suspend fun eliminarContenido(contenido: ContenidoCatalogo) =
+        catalogoDao.eliminar(contenido)
+
+    // ---------- Sincronización con API (RNF01) ----------
+    suspend fun sincronizarPendientes(): Result<Int> = runCatching {
+        val api = RetrofitClient.registrosApiService
+        var sincronizados = 0
+
+        for (animo in animoDao.obtenerPendientes()) {
+            val resp = api.enviarRegistro(
+                payload = RegistroSyncPayload(
+                    ambito = "ANIMO",
+                    fecha = animo.fecha,
+                    resumen = "${animo.emocion} (${animo.intensidad}/5)"
+                )
+            )
+            if (resp.isSuccessful) {
+                animoDao.marcarSincronizado(animo.id)
+                sincronizados++
+            } else {
+                error("Error HTTP ${resp.code()}")
+            }
+        }
+
+        for (neuro in neuroDao.obtenerPendientes()) {
+            val resp = api.enviarRegistro(
+                payload = RegistroSyncPayload(
+                    ambito = "NEURODESARROLLO",
+                    fecha = neuro.fecha,
+                    resumen = "Rutina: ${neuro.rutina}, Resultado: ${neuro.resultado}/5"
+                )
+            )
+            if (resp.isSuccessful) {
+                neuroDao.marcarSincronizado(neuro.id)
+                sincronizados++
+            } else {
+                error("Error HTTP ${resp.code()}")
+            }
+        }
+
+        for (dbt in dbtDao.obtenerPendientes()) {
+            val resp = api.enviarRegistro(
+                payload = RegistroSyncPayload(
+                    ambito = "DBT",
+                    fecha = dbt.fecha,
+                    resumen = "${dbt.habilidad} (utilidad ${dbt.utilidad}/5)"
+                )
+            )
+            if (resp.isSuccessful) {
+                dbtDao.marcarSincronizado(dbt.id)
+                sincronizados++
+            } else {
+                error("Error HTTP ${resp.code()}")
+            }
+        }
+
+        sincronizados
     }
 }
